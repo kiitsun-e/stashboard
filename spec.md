@@ -25,7 +25,7 @@ Your data lives in your own database. Summarization uses Anthropic's Haiku API. 
 
 ```
 Mobile (HTTP Shortcuts app)  ─┐
-Desktop (Web app / CLI)       ─┤──▶  Hono API  ──▶  libSQL (SQLite + vector search)
+Desktop (Web app / CLI)       ─┤──▶  Hono API  ──▶  SQLite (bun:sqlite / Turso)
                                │        │
                                │        ▼
                                │   Save Pipeline:
@@ -40,7 +40,7 @@ Desktop (Web app / CLI)       ─┤──▶  Hono API  ──▶  libSQL (SQLi
 
 **API Server** — Hono running on Bun. Handles all business logic. Runs locally for development, deployed to Railway for production.
 
-**Database** — libSQL via Drizzle ORM. Native vector search built in, production-grade, compatible with SQLite ecosystem. Drizzle supports it out of the box.
+**Database** — SQLite via Bun's built-in `bun:sqlite` + Drizzle ORM for local development. Embeddings stored as JSON text, cosine similarity computed in JS. For deployment, can upgrade to Turso (hosted libSQL) with native `vector_top_k` for indexed vector search — but brute-force cosine in JS is instant at personal scale (hundreds/low thousands of items).
 
 **Content Extraction** — Mozilla Readability (via `@mozilla/readability` + `linkedom`) for articles and blogs. X/Twitter posts are best-effort — X aggressively blocks scraping, so tweet saves degrade gracefully to storing the URL + user-provided note without full content extraction. This is acceptable because the user's note ("why I saved this") carries most of the retrieval value anyway.
 
@@ -90,15 +90,17 @@ Raw HTML is stored as files on disk at `data/archive/{id}.html`, not in the data
 | item_id | text | FK → items (ON DELETE CASCADE)     |
 | tag_id  | text | FK → tags (ON DELETE CASCADE)      |
 
-### Vector search
+### Embeddings
 
-libSQL's native vector search is used instead of a separate virtual table. Embeddings are stored as a vector column on the `items` table directly:
+Embeddings are stored as a `text` column on the `items` table containing a JSON array of 384 floats (MiniLM dimensions).
 
-| Column    | Type         | Description                                |
-| --------- | ------------ | ------------------------------------------ |
-| embedding | F32_BLOB(384)| 384-dimension vector (MiniLM)              |
+| Column    | Type | Description                                         |
+| --------- | ---- | --------------------------------------------------- |
+| embedding | text | JSON array of 384 floats from all-MiniLM-L6-v2      |
 
-Search query uses libSQL's `vector_distance_cos()` function to find similar items, joined directly against the items table — no separate table or FK complexity.
+Semantic search loads all processed embeddings into memory and computes cosine similarity in JS. This is O(n) but fast enough for personal scale — a few thousand items process in single-digit milliseconds.
+
+**Turso upgrade path:** When deploying to Turso, the embedding column can be migrated to `F32_BLOB(384)` with a `libsql_vector_idx` index, and search can use `vector_top_k()` for indexed ANN search. This is a deployment optimization, not a functional change.
 
 ## API Endpoints
 
@@ -273,7 +275,7 @@ stash retry <id>
 ## Deployment
 
 - **Server:** Railway (Hono API)
-- **Database:** libSQL file on Railway persistent volume
+- **Database:** SQLite on Railway persistent volume (or Turso for managed hosting + native vector search)
 - **HTML Archive:** Files on Railway persistent volume at `data/archive/`
 - **Domain:** Custom domain or Railway-provided URL
 
@@ -290,16 +292,15 @@ stash retry <id>
 
 ## Build Phases
 
-### Phase 1: CLI + Core Pipeline (local)
+### Phase 1: CLI + Core Pipeline (local) ✓
 
-Build and test everything locally via CLI:
-- Data model + Drizzle schema + libSQL setup
-- Save pipeline: fetch → extract → summarize (Haiku) → embed → store
-- Semantic search query
-- CLI commands: `save`, `search`, `list`, `read`, `retry`
-- SSRF protection on URL fetching
-
-This phase produces a fully working local tool. No server, no deployment.
+Completed. Fully working local CLI tool:
+- Data model + Drizzle schema + bun:sqlite setup
+- Save pipeline: SSRF-safe fetch → Readability extraction → Haiku summarization/tagging → MiniLM embedding → SQLite storage
+- Semantic search via cosine similarity in JS
+- CLI commands: `save`, `search`, `list`, `open`, `read`, `retry`
+- Idempotent saves, graceful tweet degradation, content size limits
+- Raw HTML archived to disk, extracted markdown in DB
 
 ### Phase 2: API Server
 
