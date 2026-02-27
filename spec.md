@@ -302,13 +302,14 @@ Completed. Fully working local CLI tool:
 - Idempotent saves, graceful tweet degradation, content size limits
 - Raw HTML archived to disk, extracted markdown in DB
 
-### Phase 2: API Server
+### Phase 2: API Server ✓
 
-Wrap the core in Hono endpoints:
-- All API endpoints listed above
-- Bearer token auth middleware
-- Fire-and-forget async processing
-- Deploy to Railway
+Completed. Hono API wrapping all core pipeline functions:
+- All API endpoints: `POST /save`, `GET /search`, `GET /library`, `GET /items/:id`, `DELETE /items/:id`, `PATCH /items/:id`, `POST /process`
+- Bearer token auth middleware (`STASHBOARD_TOKEN` env var, skipped when unset for local dev)
+- Fire-and-forget async processing on save
+- `bun run dev` (watch mode) / `bun run start` for local server on port 3000
+- Deploy to Railway (pending)
 
 ### Phase 3: Web Frontend + Mobile
 
