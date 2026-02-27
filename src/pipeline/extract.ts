@@ -1,0 +1,113 @@
+import { Readability } from "@mozilla/readability";
+import { parseHTML } from "linkedom";
+import { validateUrl } from "./ssrf";
+
+const FETCH_TIMEOUT = 15_000;
+const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_CONTENT_SIZE = 500 * 1024; // 500KB extracted content
+const MAX_REDIRECTS = 3;
+
+export interface ExtractedContent {
+  title: string;
+  content: string; // markdown-ish text
+  html: string; // raw HTML for archiving
+  sourceType: "article" | "tweet" | "video" | "pdf" | "other";
+}
+
+function detectSourceType(
+  url: string
+): "article" | "tweet" | "video" | "pdf" | "other" {
+  const host = new URL(url).hostname.replace("www.", "");
+
+  if (host === "x.com" || host === "twitter.com") return "tweet";
+  if (host === "youtube.com" || host === "youtu.be") return "video";
+  if (url.endsWith(".pdf")) return "pdf";
+  return "article";
+}
+
+/**
+ * Fetch a URL with SSRF protection, redirect limits, and size limits
+ */
+async function safeFetch(url: string, redirectCount = 0): Promise<Response> {
+  if (redirectCount > MAX_REDIRECTS) {
+    throw new Error(`Too many redirects (>${MAX_REDIRECTS})`);
+  }
+
+  await validateUrl(url);
+
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    redirect: "manual",
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; Stashboard/1.0; +https://github.com/stashboard)",
+    },
+  });
+
+  // Handle redirects manually so we can validate each target
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get("location");
+    if (!location) throw new Error("Redirect with no Location header");
+
+    const redirectUrl = new URL(location, url).toString();
+    return safeFetch(redirectUrl, redirectCount + 1);
+  }
+
+  return response;
+}
+
+/**
+ * Fetch and extract content from a URL
+ */
+export async function extractContent(url: string): Promise<ExtractedContent> {
+  const sourceType = detectSourceType(url);
+
+  // Tweets: X blocks scraping, degrade gracefully
+  if (sourceType === "tweet") {
+    return {
+      title: `Tweet: ${url}`,
+      content: "",
+      html: "",
+      sourceType: "tweet",
+    };
+  }
+
+  const response = await safeFetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+  }
+
+  // Check content size
+  const contentLength = response.headers.get("content-length");
+  if (contentLength && parseInt(contentLength) > MAX_RESPONSE_SIZE) {
+    throw new Error(`Response too large: ${contentLength} bytes`);
+  }
+
+  const html = await response.text();
+
+  if (html.length > MAX_RESPONSE_SIZE) {
+    throw new Error(`Response too large: ${html.length} bytes`);
+  }
+
+  // Parse with Readability
+  const { document } = parseHTML(html);
+  const reader = new Readability(document as any);
+  const article = reader.parse();
+
+  let content = article?.textContent?.trim() ?? "";
+
+  // Cap content size
+  if (content.length > MAX_CONTENT_SIZE) {
+    content =
+      content.slice(0, MAX_CONTENT_SIZE) +
+      "\n\n[Content truncated — original exceeds 500KB]";
+  }
+
+  return {
+    title: article?.title ?? new URL(url).hostname,
+    content,
+    html: html.length <= 2 * 1024 * 1024 ? html : "", // skip archive if >2MB
+    sourceType,
+  };
+}
