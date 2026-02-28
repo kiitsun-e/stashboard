@@ -39,7 +39,7 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
   const typeLabel = SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType;
   return (
-    <article class={`card${item.read ? " is-read" : ""}`} data-item-id={item.id}>
+    <article class={`card${item.read ? " is-read" : ""}${item.pinned ? " is-pinned" : ""}`} data-item-id={item.id}>
       <div class="card-body">
         <h2 class="card-title">
           {!item.read && <span class="unread-dot" />}
@@ -91,6 +91,26 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
         })()}
         <div class="card-actions">
           <button
+            class={`card-pin-btn${item.pinned ? " is-active" : ""}`}
+            type="button"
+            data-item-id={item.id}
+            data-pinned={item.pinned ? "true" : "false"}
+            onclick="toggleCardPin(this)"
+            title={item.pinned ? "Unpin" : "Pin to top"}
+          >
+            {item.pinned ? "pinned" : "pin"}
+          </button>
+          <button
+            class={`card-fav-btn${item.favorited ? " is-active" : ""}`}
+            type="button"
+            data-item-id={item.id}
+            data-favorited={item.favorited ? "true" : "false"}
+            onclick="toggleCardFav(this)"
+            title={item.favorited ? "Remove from favorites" : "Add to favorites"}
+          >
+            {item.favorited ? "\u2605" : "\u2606"}
+          </button>
+          <button
             class="card-read-btn"
             type="button"
             data-item-id={item.id}
@@ -120,15 +140,19 @@ export const LibraryPage: FC<{
   activeStatus?: string;
   activeSourceType?: string;
   activeRead?: string;
+  activeFavorited?: string;
+  activePinned?: string;
   allTags: string[];
   nextCursor?: string;
-}> = ({ results, activeTag, activeStatus, activeSourceType, activeRead, allTags, nextCursor }) => {
+}> = ({ results, activeTag, activeStatus, activeSourceType, activeRead, activeFavorited, activePinned, allTags, nextCursor }) => {
   function filterUrl(overrides: Record<string, string | undefined>) {
     const params: Record<string, string> = {};
     if (activeTag) params.tag = activeTag;
     if (activeStatus) params.status = activeStatus;
     if (activeSourceType) params.source_type = activeSourceType;
     if (activeRead) params.read = activeRead;
+    if (activeFavorited) params.favorited = activeFavorited;
+    if (activePinned) params.pinned = activePinned;
     for (const [k, v] of Object.entries(overrides)) {
       if (v) params[k] = v;
       else delete params[k];
@@ -218,6 +242,36 @@ export const LibraryPage: FC<{
                   {label}
                 </a>
               ))}
+            </div>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-group">
+            <span class="filter-label">Saved</span>
+            <div class="filter-options">
+              {[
+                { param: "favorited" as const, value: "", label: "All" },
+                { param: "favorited" as const, value: "true", label: "Favorites" },
+                { param: "pinned" as const, value: "true", label: "Pinned" },
+              ].map(({ param, value, label }) => {
+                const isActive = param === "favorited"
+                  ? (value === "" ? !activeFavorited && !activePinned : activeFavorited === value)
+                  : activePinned === value;
+                return (
+                  <a
+                    class={`filter-option ${isActive ? "active" : ""}`}
+                    href={filterUrl(
+                      value === ""
+                        ? { favorited: undefined, pinned: undefined }
+                        : param === "favorited"
+                          ? { favorited: value, pinned: undefined }
+                          : { pinned: value, favorited: undefined }
+                    )}
+                  >
+                    {label}
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>

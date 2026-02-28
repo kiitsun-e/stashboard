@@ -155,6 +155,62 @@ export const Layout: FC<
             });
           }
 
+          function toggleCardFav(btn) {
+            var id = btn.getAttribute('data-item-id');
+            var isFav = btn.getAttribute('data-favorited') === 'true';
+            var newFav = !isFav;
+            btn.setAttribute('data-favorited', String(newFav));
+            btn.textContent = newFav ? '\u2605' : '\u2606';
+            btn.classList.toggle('is-active', newFav);
+            fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ favorited: newFav })
+            });
+          }
+
+          function toggleCardPin(btn) {
+            var id = btn.getAttribute('data-item-id');
+            var isPinned = btn.getAttribute('data-pinned') === 'true';
+            var newPinned = !isPinned;
+            btn.setAttribute('data-pinned', String(newPinned));
+            btn.textContent = newPinned ? 'pinned' : 'pin';
+            btn.classList.toggle('is-active', newPinned);
+            var card = btn.closest('.card');
+            if (card) card.classList.toggle('is-pinned', newPinned);
+            fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pinned: newPinned })
+            });
+          }
+
+          function toggleFav(btn) {
+            var id = btn.getAttribute('data-item-id');
+            var isFav = btn.getAttribute('data-favorited') === 'true';
+            var newFav = !isFav;
+            btn.setAttribute('data-favorited', String(newFav));
+            btn.textContent = newFav ? '\u2605 favorited' : '\u2606 favorite';
+            fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ favorited: newFav })
+            });
+          }
+
+          function togglePin(btn) {
+            var id = btn.getAttribute('data-item-id');
+            var isPinned = btn.getAttribute('data-pinned') === 'true';
+            var newPinned = !isPinned;
+            btn.setAttribute('data-pinned', String(newPinned));
+            btn.textContent = newPinned ? 'unpin' : 'pin';
+            fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pinned: newPinned })
+            });
+          }
+
           function handleDelete(btn) {
             if (!btn.classList.contains('confirming')) {
               btn.classList.add('confirming');

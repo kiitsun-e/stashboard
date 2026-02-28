@@ -23,6 +23,8 @@ export const items = sqliteTable("items", {
   error: text("error"),
   embedding: text("embedding"), // JSON array of floats, cosine similarity in JS
   read: integer("read", { mode: "boolean" }).notNull().default(false),
+  favorited: integer("favorited", { mode: "boolean" }).notNull().default(false),
+  pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
 });
 
 export const tags = sqliteTable("tags", {

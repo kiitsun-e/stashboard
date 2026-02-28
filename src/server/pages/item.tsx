@@ -16,6 +16,8 @@ interface ItemDetail {
   error: string | null;
   tags: string[];
   read: boolean;
+  favorited: boolean;
+  pinned: boolean;
 }
 
 function formatDate(unixSeconds: number): string {
@@ -85,6 +87,24 @@ export const ItemPage: FC<{ item: ItemDetail }> = ({ item }) => {
             onclick="toggleRead(this)"
           >
             {item.read ? "mark unread" : "mark read"}
+          </button>
+          <button
+            class="item-fav-btn"
+            type="button"
+            data-item-id={item.id}
+            data-favorited={item.favorited ? "true" : "false"}
+            onclick="toggleFav(this)"
+          >
+            {item.favorited ? "\u2605 favorited" : "\u2606 favorite"}
+          </button>
+          <button
+            class="item-pin-btn"
+            type="button"
+            data-item-id={item.id}
+            data-pinned={item.pinned ? "true" : "false"}
+            onclick="togglePin(this)"
+          >
+            {item.pinned ? "unpin" : "pin"}
           </button>
           <button
             class="item-delete-btn"

@@ -60,6 +60,20 @@ export function migrate() {
     // Column already exists
   }
 
+  // Add favorited column for existing databases
+  try {
+    sqlite.exec("ALTER TABLE items ADD COLUMN favorited INTEGER NOT NULL DEFAULT 0");
+  } catch {
+    // Column already exists
+  }
+
+  // Add pinned column for existing databases
+  try {
+    sqlite.exec("ALTER TABLE items ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0");
+  } catch {
+    // Column already exists
+  }
+
   // One-off: clean up orphaned tags from past deletes
   sqlite.exec(
     "DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM item_tags)"

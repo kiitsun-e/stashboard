@@ -15,6 +15,8 @@ export interface SearchResult {
   status: string;
   sourceType: string;
   read: boolean;
+  favorited: boolean;
+  pinned: boolean;
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -65,8 +67,13 @@ export async function search(
     scored.push({ item, similarity });
   }
 
-  // Sort by similarity descending
+  // Sort by similarity descending, then float pinned to top
   scored.sort((a, b) => b.similarity - a.similarity);
+  scored.sort((a, b) => {
+    if (a.item.pinned && !b.item.pinned) return -1;
+    if (!a.item.pinned && b.item.pinned) return 1;
+    return 0;
+  });
 
   // Build results with tag enrichment and filtering
   const results: SearchResult[] = [];
@@ -87,6 +94,8 @@ export async function search(
       status: item.status,
       sourceType: item.sourceType,
       read: item.read,
+      favorited: item.favorited,
+      pinned: item.pinned,
     });
 
     if (results.length >= limit) break;
@@ -104,6 +113,8 @@ export async function list(
     sourceType?: string;
     status?: string;
     read?: string;
+    favorited?: string;
+    pinned?: string;
     cursor?: string;
     limit?: number;
   } = {}
@@ -123,6 +134,8 @@ export async function list(
   if (options.status) allItems = allItems.filter((i) => i.status === options.status);
   if (options.read === "true") allItems = allItems.filter((i) => i.read);
   if (options.read === "false") allItems = allItems.filter((i) => !i.read);
+  if (options.favorited === "true") allItems = allItems.filter((i) => i.favorited);
+  if (options.pinned === "true") allItems = allItems.filter((i) => i.pinned);
   if (cursor) allItems = allItems.filter((i) => i.id < cursor);
 
   const results: SearchResult[] = [];
@@ -141,10 +154,19 @@ export async function list(
       status: item.status,
       sourceType: item.sourceType,
       read: item.read,
+      favorited: item.favorited,
+      pinned: item.pinned,
     });
 
     if (results.length >= limit) break;
   }
+
+  // Float pinned items to top, preserving order within groups
+  results.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return 0;
+  });
 
   return results;
 }

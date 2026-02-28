@@ -39,7 +39,7 @@ const ResultItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
   const typeLabel = SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType;
   return (
-    <article class={`card${item.read ? " is-read" : ""}`} data-item-id={item.id}>
+    <article class={`card${item.read ? " is-read" : ""}${item.pinned ? " is-pinned" : ""}`} data-item-id={item.id}>
       <div class="card-body">
         <h2 class="card-title">
           {!item.read && <span class="unread-dot" />}
@@ -53,6 +53,12 @@ const ResultItem: FC<{ item: SearchResult }> = ({ item }) => {
           <span class="card-time">{timeAgo(item.savedAt)}</span>
           <span class="card-sep">&middot;</span>
           <span class="card-type">{typeLabel}</span>
+          {item.pinned && (
+            <>
+              <span class="card-sep">&middot;</span>
+              <span class="card-pinned-label">pinned</span>
+            </>
+          )}
           {item.similarity !== undefined && (
             <>
               <span class="card-sep">&middot;</span>

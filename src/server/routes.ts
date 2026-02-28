@@ -130,6 +130,8 @@ routes.patch("/items/:id", async (c) => {
     add_tags?: string[];
     remove_tags?: string[];
     read?: boolean;
+    favorited?: boolean;
+    pinned?: boolean;
   }>();
 
   const [item] = await db
@@ -155,6 +157,22 @@ routes.patch("/items/:id", async (c) => {
     await db
       .update(items)
       .set({ read: body.read })
+      .where(eq(items.id, id));
+  }
+
+  // Update favorited status if provided
+  if (body.favorited !== undefined) {
+    await db
+      .update(items)
+      .set({ favorited: body.favorited })
+      .where(eq(items.id, id));
+  }
+
+  // Update pinned status if provided
+  if (body.pinned !== undefined) {
+    await db
+      .update(items)
+      .set({ pinned: body.pinned })
       .where(eq(items.id, id));
   }
 

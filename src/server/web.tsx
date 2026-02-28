@@ -53,10 +53,12 @@ web.get("/library", async (c) => {
   const sourceType = c.req.query("source_type") || undefined;
   const status = c.req.query("status") || undefined;
   const readFilter = c.req.query("read") || undefined;
+  const favoritedFilter = c.req.query("favorited") || undefined;
+  const pinnedFilter = c.req.query("pinned") || undefined;
   const cursor = c.req.query("cursor") || undefined;
   const limit = 50;
 
-  const results = await list({ tag, sourceType, status, read: readFilter, cursor, limit: limit + 1 });
+  const results = await list({ tag, sourceType, status, read: readFilter, favorited: favoritedFilter, pinned: pinnedFilter, cursor, limit: limit + 1 });
 
   // Check if there's a next page
   let nextCursor: string | undefined;
@@ -76,6 +78,8 @@ web.get("/library", async (c) => {
       activeStatus={status}
       activeSourceType={sourceType}
       activeRead={readFilter}
+      activeFavorited={favoritedFilter}
+      activePinned={pinnedFilter}
       allTags={allTags}
       nextCursor={nextCursor}
     />
@@ -110,6 +114,8 @@ web.get("/items/:id", async (c) => {
           error: `Item ${id} not found.`,
           tags: [],
           read: false,
+          favorited: false,
+          pinned: false,
         }}
       />,
       404
