@@ -61,10 +61,20 @@ export const ItemPage: FC<{ item: ItemDetail }> = ({ item }) => {
           </div>
         </header>
 
-        {/* Primary action */}
-        <a href={item.url} target="_blank" rel="noopener" class="item-open">
-          Open Original &rarr;
-        </a>
+        {/* Actions */}
+        <div class="item-actions">
+          <a href={item.url} target="_blank" rel="noopener" class="item-open">
+            Open Original &rarr;
+          </a>
+          <button
+            class="item-delete-btn"
+            type="button"
+            data-item-id={item.id}
+            onclick="handleItemDelete(this)"
+          >
+            delete
+          </button>
+        </div>
 
         {/* Note */}
         {item.userNote && (

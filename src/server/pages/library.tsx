@@ -65,7 +65,17 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
             ))}
           </div>
         )}
-        <a class="card-detail-link" href={`/items/${item.id}`}>details &rarr;</a>
+        <div class="card-actions">
+          <button
+            class="card-delete-btn"
+            type="button"
+            data-item-id={item.id}
+            onclick="handleDelete(this)"
+          >
+            delete
+          </button>
+          <a class="card-detail-link" href={`/items/${item.id}`}>details &rarr;</a>
+        </div>
       </div>
     </article>
   );

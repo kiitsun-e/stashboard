@@ -52,6 +52,64 @@ export const Layout: FC<
             const saved = localStorage.getItem('stashboard-theme');
             if (saved) document.documentElement.setAttribute('data-theme', saved);
           })();
+
+          function handleItemDelete(btn) {
+            if (!btn.classList.contains('confirming')) {
+              btn.classList.add('confirming');
+              btn.textContent = 'confirm delete?';
+              setTimeout(function() {
+                if (btn.classList.contains('confirming')) {
+                  btn.classList.remove('confirming');
+                  btn.textContent = 'delete';
+                }
+              }, 3000);
+              return;
+            }
+            var id = btn.getAttribute('data-item-id');
+            btn.disabled = true;
+            btn.textContent = 'deleting...';
+            fetch('/items/' + id, { method: 'DELETE' })
+              .then(function(res) {
+                if (!res.ok) throw new Error('Failed');
+                window.location.href = '/library';
+              })
+              .catch(function() {
+                btn.disabled = false;
+                btn.classList.remove('confirming');
+                btn.textContent = 'failed';
+                setTimeout(function() { btn.textContent = 'delete'; }, 2000);
+              });
+          }
+
+          function handleDelete(btn) {
+            if (!btn.classList.contains('confirming')) {
+              btn.classList.add('confirming');
+              btn.textContent = 'confirm?';
+              setTimeout(function() {
+                if (btn.classList.contains('confirming')) {
+                  btn.classList.remove('confirming');
+                  btn.textContent = 'delete';
+                }
+              }, 3000);
+              return;
+            }
+            var id = btn.getAttribute('data-item-id');
+            btn.disabled = true;
+            btn.textContent = '...';
+            fetch('/items/' + id, { method: 'DELETE' })
+              .then(function(res) {
+                if (!res.ok) throw new Error('Failed');
+                var card = btn.closest('.card');
+                card.classList.add('deleting');
+                setTimeout(function() { card.remove(); }, 200);
+              })
+              .catch(function() {
+                btn.disabled = false;
+                btn.classList.remove('confirming');
+                btn.textContent = 'failed';
+                setTimeout(function() { btn.textContent = 'delete'; }, 2000);
+              });
+          }
         `,
           }}
         />
