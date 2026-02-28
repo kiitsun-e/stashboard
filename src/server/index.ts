@@ -27,6 +27,8 @@ if (token) {
   app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
     if (path === "/login" || path.startsWith("/public/")) return next();
+    const auth = c.req.header("Authorization");
+    if (auth === `Bearer ${token}`) return next();
     const cookie = getCookie(c, "stashboard_auth");
     if (cookie === token) return next();
     return c.redirect("/login");

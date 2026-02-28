@@ -106,6 +106,11 @@ routes.delete("/items/:id", async (c) => {
 
   await db.delete(items).where(eq(items.id, id));
 
+  // Clean up orphaned tags (no remaining item_tags references)
+  await db.delete(tags).where(
+    sql`${tags.id} NOT IN (SELECT DISTINCT ${itemTags.tagId} FROM ${itemTags})`
+  );
+
   // Clean up archived HTML
   try {
     const { unlinkSync } = await import("node:fs");
