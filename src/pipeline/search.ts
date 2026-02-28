@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+import { eq, and, desc, lt, inArray } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { db } from "../db";
 import { items, tags, itemTags } from "../db/schema";
 import { embed } from "./embed";
@@ -19,6 +20,21 @@ export interface SearchResult {
   pinned: boolean;
 }
 
+/** Columns needed for list/search display — excludes content, contentHtml, embedding, error */
+const listColumns = {
+  id: items.id,
+  url: items.url,
+  title: items.title,
+  summary: items.summary,
+  userNote: items.userNote,
+  savedAt: items.savedAt,
+  status: items.status,
+  sourceType: items.sourceType,
+  read: items.read,
+  favorited: items.favorited,
+  pinned: items.pinned,
+};
+
 function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0,
     normA = 0,
@@ -32,7 +48,8 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-async function enrichWithTags(itemId: string): Promise<string[]> {
+/** Fetch tags for a single item (used by detail page / API routes) */
+export async function enrichWithTags(itemId: string): Promise<string[]> {
   const rows = await db
     .select({ name: tags.name })
     .from(itemTags)
@@ -41,8 +58,36 @@ async function enrichWithTags(itemId: string): Promise<string[]> {
   return rows.map((t) => t.name);
 }
 
+/** Batch-fetch tags for multiple items in a single query */
+async function batchEnrichTags(
+  itemIds: string[]
+): Promise<Map<string, string[]>> {
+  if (itemIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      itemId: itemTags.itemId,
+      tagName: tags.name,
+    })
+    .from(itemTags)
+    .innerJoin(tags, eq(tags.id, itemTags.tagId))
+    .where(inArray(itemTags.itemId, itemIds));
+
+  const map = new Map<string, string[]>();
+  for (const row of rows) {
+    const existing = map.get(row.itemId);
+    if (existing) {
+      existing.push(row.tagName);
+    } else {
+      map.set(row.itemId, [row.tagName]);
+    }
+  }
+  return map;
+}
+
 /**
- * Semantic search — embed query, compute cosine similarity against all items
+ * Semantic search — embed query, compute cosine similarity against all items.
+ * Two-phase: score with minimal columns, then fetch display data for top results.
  */
 export async function search(
   query: string,
@@ -52,50 +97,62 @@ export async function search(
 
   const queryEmbedding = await embed(query, "", undefined);
 
-  // Get all processed items with embeddings
-  const allItems = await db
-    .select()
+  // Phase 1: Fetch only id + embedding + pinned for scoring
+  const allEmbeddings = await db
+    .select({
+      id: items.id,
+      embedding: items.embedding,
+      pinned: items.pinned,
+    })
     .from(items)
     .where(eq(items.status, "processed"));
 
   // Score each item
-  const scored: { item: (typeof allItems)[0]; similarity: number }[] = [];
-  for (const item of allItems) {
-    if (!item.embedding) continue;
-    const itemEmbedding: number[] = JSON.parse(item.embedding);
+  const scored: { id: string; similarity: number; pinned: boolean }[] = [];
+  for (const row of allEmbeddings) {
+    if (!row.embedding) continue;
+    const itemEmbedding: number[] = JSON.parse(row.embedding);
     const similarity = cosineSimilarity(queryEmbedding, itemEmbedding);
-    scored.push({ item, similarity });
+    scored.push({ id: row.id, similarity, pinned: row.pinned });
   }
 
-  // Sort by similarity descending, then float pinned to top
-  scored.sort((a, b) => b.similarity - a.similarity);
+  // Sort: pinned first, then by similarity descending
   scored.sort((a, b) => {
-    if (a.item.pinned && !b.item.pinned) return -1;
-    if (!a.item.pinned && b.item.pinned) return 1;
-    return 0;
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return b.similarity - a.similarity;
   });
 
-  // Build results with tag enrichment and filtering
-  const results: SearchResult[] = [];
-  for (const { item, similarity } of scored) {
-    const tagNames = await enrichWithTags(item.id);
+  // Over-fetch when filtering by tag to account for non-matching items
+  const fetchLimit = tag ? limit * 3 : limit;
+  const topIds = scored.slice(0, fetchLimit).map((s) => s.id);
 
-    if (tag && !tagNames.includes(tag)) continue;
+  if (topIds.length === 0) return [];
+
+  // Phase 2: Fetch display columns for top results only
+  const topItems = await db
+    .select(listColumns)
+    .from(items)
+    .where(inArray(items.id, topIds));
+
+  const itemMap = new Map(topItems.map((item) => [item.id, item]));
+
+  // Phase 3: Batch tag enrichment
+  const tagMap = await batchEnrichTags(topIds);
+
+  // Build results in scored order, applying tag filter
+  const results: SearchResult[] = [];
+  for (const { id, similarity } of scored) {
+    const item = itemMap.get(id);
+    if (!item) continue;
+
+    const itemTagNames = tagMap.get(id) ?? [];
+    if (tag && !itemTagNames.includes(tag)) continue;
 
     results.push({
-      id: item.id,
-      url: item.url,
-      title: item.title,
-      summary: item.summary,
-      tags: tagNames,
-      userNote: item.userNote,
+      ...item,
+      tags: itemTagNames,
       similarity,
-      savedAt: item.savedAt,
-      status: item.status,
-      sourceType: item.sourceType,
-      read: item.read,
-      favorited: item.favorited,
-      pinned: item.pinned,
     });
 
     if (results.length >= limit) break;
@@ -105,7 +162,8 @@ export async function search(
 }
 
 /**
- * List items with optional filtering, paginated by ULID cursor
+ * List items with optional filtering, paginated by ULID cursor.
+ * All filtering and sorting pushed to SQL.
  */
 export async function list(
   options: {
@@ -121,52 +179,48 @@ export async function list(
 ): Promise<SearchResult[]> {
   const { tag, sourceType, cursor, limit = 50 } = options;
 
-  let allItems = await db
-    .select()
-    .from(items)
-    .orderBy(items.savedAt);
+  // Build WHERE conditions
+  const conditions: SQL[] = [];
+  if (sourceType)
+    conditions.push(
+      eq(items.sourceType, sourceType as typeof items.sourceType._.data)
+    );
+  if (options.status)
+    conditions.push(
+      eq(items.status, options.status as typeof items.status._.data)
+    );
+  if (options.read === "true") conditions.push(eq(items.read, true));
+  if (options.read === "false") conditions.push(eq(items.read, false));
+  if (options.favorited === "true") conditions.push(eq(items.favorited, true));
+  if (options.pinned === "true") conditions.push(eq(items.pinned, true));
+  if (cursor) conditions.push(lt(items.id, cursor));
 
-  // Reverse to get descending order
-  allItems = allItems.reverse();
-
-  // Apply filters
-  if (sourceType) allItems = allItems.filter((i) => i.sourceType === sourceType);
-  if (options.status) allItems = allItems.filter((i) => i.status === options.status);
-  if (options.read === "true") allItems = allItems.filter((i) => i.read);
-  if (options.read === "false") allItems = allItems.filter((i) => !i.read);
-  if (options.favorited === "true") allItems = allItems.filter((i) => i.favorited);
-  if (options.pinned === "true") allItems = allItems.filter((i) => i.pinned);
-  if (cursor) allItems = allItems.filter((i) => i.id < cursor);
-
-  const results: SearchResult[] = [];
-  for (const item of allItems) {
-    const tagNames = await enrichWithTags(item.id);
-    if (tag && !tagNames.includes(tag)) continue;
-
-    results.push({
-      id: item.id,
-      url: item.url,
-      title: item.title,
-      summary: item.summary,
-      tags: tagNames,
-      userNote: item.userNote,
-      savedAt: item.savedAt,
-      status: item.status,
-      sourceType: item.sourceType,
-      read: item.read,
-      favorited: item.favorited,
-      pinned: item.pinned,
-    });
-
-    if (results.length >= limit) break;
+  let rows;
+  if (tag) {
+    // Tag filter via JOIN — filter at SQL level instead of iterating all items
+    rows = await db
+      .select(listColumns)
+      .from(items)
+      .innerJoin(itemTags, eq(itemTags.itemId, items.id))
+      .innerJoin(tags, eq(tags.id, itemTags.tagId))
+      .where(and(eq(tags.name, tag), ...conditions))
+      .orderBy(desc(items.pinned), desc(items.id))
+      .limit(limit);
+  } else {
+    rows = await db
+      .select(listColumns)
+      .from(items)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(items.pinned), desc(items.id))
+      .limit(limit);
   }
 
-  // Float pinned items to top, preserving order within groups
-  results.sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return 0;
-  });
+  // Batch tag enrichment — single query for all item IDs
+  const itemIds = rows.map((r) => r.id);
+  const tagMap = await batchEnrichTags(itemIds);
 
-  return results;
+  return rows.map((row) => ({
+    ...row,
+    tags: tagMap.get(row.id) ?? [],
+  }));
 }

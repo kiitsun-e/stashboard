@@ -74,6 +74,14 @@ export function migrate() {
     // Column already exists
   }
 
+  // Indexes for query performance
+  sqlite.exec(`
+    CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
+    CREATE INDEX IF NOT EXISTS idx_items_saved_at ON items(saved_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_items_source_type ON items(source_type);
+    CREATE INDEX IF NOT EXISTS idx_item_tags_tag_id ON item_tags(tag_id);
+  `);
+
   // One-off: clean up orphaned tags from past deletes
   sqlite.exec(
     "DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM item_tags)"

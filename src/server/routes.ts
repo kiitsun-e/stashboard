@@ -67,7 +67,23 @@ routes.get("/items/:id", async (c) => {
   const id = c.req.param("id");
 
   const [item] = await db
-    .select()
+    .select({
+      id: items.id,
+      url: items.url,
+      title: items.title,
+      content: items.content,
+      contentHtml: items.contentHtml,
+      userNote: items.userNote,
+      summary: items.summary,
+      sourceType: items.sourceType,
+      savedAt: items.savedAt,
+      processedAt: items.processedAt,
+      status: items.status,
+      error: items.error,
+      read: items.read,
+      favorited: items.favorited,
+      pinned: items.pinned,
+    })
     .from(items)
     .where(eq(items.id, id))
     .limit(1);
@@ -85,7 +101,6 @@ routes.get("/items/:id", async (c) => {
 
   return c.json({
     ...item,
-    embedding: undefined, // Don't send raw embedding to client
     tags: tagRows.map((t) => t.name),
   });
 });
@@ -221,7 +236,23 @@ routes.patch("/items/:id", async (c) => {
 
   // Return updated item
   const [updated] = await db
-    .select()
+    .select({
+      id: items.id,
+      url: items.url,
+      title: items.title,
+      content: items.content,
+      contentHtml: items.contentHtml,
+      userNote: items.userNote,
+      summary: items.summary,
+      sourceType: items.sourceType,
+      savedAt: items.savedAt,
+      processedAt: items.processedAt,
+      status: items.status,
+      error: items.error,
+      read: items.read,
+      favorited: items.favorited,
+      pinned: items.pinned,
+    })
     .from(items)
     .where(eq(items.id, id))
     .limit(1);
@@ -234,7 +265,6 @@ routes.patch("/items/:id", async (c) => {
 
   return c.json({
     ...updated,
-    embedding: undefined,
     tags: tagRows.map((t) => t.name),
   });
 });
