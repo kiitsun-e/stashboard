@@ -70,15 +70,30 @@ const ResultItem: FC<{ item: SearchResult }> = ({ item }) => {
         {item.userNote && <div class="card-note">"{item.userNote}"</div>}
         {item.summary && <p class="card-summary">{item.summary}</p>}
       </div>
-      {item.tags.length > 0 && (
-        <div class="card-footer">
-          <div class="card-tags">
-            {item.tags.map((tag) => (
-              <span class="tag">{tag}</span>
-            ))}
+      {item.tags.length > 0 && (() => {
+        const limit = 4;
+        const visible = item.tags.slice(0, limit);
+        const overflow = item.tags.slice(limit);
+        return (
+          <div class="card-footer">
+            <div class="card-tags">
+              {visible.map((tag) => (
+                <span class="tag">{tag}</span>
+              ))}
+              {overflow.length > 0 && (
+                <span class="card-tags-overflow">
+                  <span class="card-tags-fade">
+                    {overflow.slice(0, 2).map((tag) => (
+                      <span class="tag">{tag}</span>
+                    ))}
+                  </span>
+                  <span class="card-tags-more">+{overflow.length}</span>
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </article>
   );
 };

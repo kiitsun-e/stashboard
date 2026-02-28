@@ -63,15 +63,32 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
         {item.summary && <p class="card-summary">{item.summary}</p>}
       </div>
       <div class="card-footer">
-        {item.tags.length > 0 && (
-          <div class="card-tags">
-            {item.tags.map((tag) => (
-              <a class="tag" href={`/library?tag=${encodeURIComponent(tag)}`}>
-                {tag}
-              </a>
-            ))}
-          </div>
-        )}
+        {item.tags.length > 0 && (() => {
+          const limit = 4;
+          const visible = item.tags.slice(0, limit);
+          const overflow = item.tags.slice(limit);
+          return (
+            <div class="card-tags">
+              {visible.map((tag) => (
+                <a class="tag" href={`/library?tag=${encodeURIComponent(tag)}`}>
+                  {tag}
+                </a>
+              ))}
+              {overflow.length > 0 && (
+                <span class="card-tags-overflow">
+                  <span class="card-tags-fade">
+                    {overflow.slice(0, 2).map((tag) => (
+                      <a class="tag" href={`/library?tag=${encodeURIComponent(tag)}`}>
+                        {tag}
+                      </a>
+                    ))}
+                  </span>
+                  <span class="card-tags-more">+{overflow.length}</span>
+                </span>
+              )}
+            </div>
+          );
+        })()}
         <div class="card-actions">
           <button
             class="card-read-btn"

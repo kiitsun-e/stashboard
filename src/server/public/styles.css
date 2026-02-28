@@ -478,6 +478,7 @@ a:hover {
   display: flex;
   gap: var(--space-1);
   flex-wrap: wrap;
+  align-items: center;
   min-width: 0;
 }
 
@@ -489,6 +490,27 @@ a:hover {
   padding: 1px var(--space-2);
   border-radius: var(--radius-sm);
   letter-spacing: 0.01em;
+}
+
+.card-tags-overflow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.card-tags-fade {
+  display: inline-flex;
+  gap: var(--space-1);
+  mask-image: linear-gradient(to right, rgba(0,0,0,0.45) 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0.45) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.card-tags-more {
+  font-size: 0.625rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .card-actions {
