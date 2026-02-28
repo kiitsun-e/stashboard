@@ -39,10 +39,11 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
   const typeLabel = SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType;
   return (
-    <article class="card">
+    <article class={`card${item.read ? " is-read" : ""}`} data-item-id={item.id}>
       <div class="card-body">
         <h2 class="card-title">
-          <a href={item.url} target="_blank" rel="noopener">
+          {!item.read && <span class="unread-dot" />}
+          <a href={item.url} target="_blank" rel="noopener" data-item-id={item.id} onclick="markReadFromCard(this)">
             {displayTitle}
           </a>
         </h2>
@@ -73,6 +74,15 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
         )}
         <div class="card-actions">
           <button
+            class="card-read-btn"
+            type="button"
+            data-item-id={item.id}
+            data-read={item.read ? "true" : "false"}
+            onclick="toggleCardRead(this)"
+          >
+            {item.read ? "unread" : "read"}
+          </button>
+          <button
             class="card-delete-btn"
             type="button"
             data-item-id={item.id}
@@ -80,7 +90,7 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
           >
             delete
           </button>
-          <a class="card-detail-link" href={`/items/${item.id}`}>details &rarr;</a>
+          <a class="card-detail-link" href={`/items/${item.id}`} data-item-id={item.id} onclick="markReadFromCard(this)">details &rarr;</a>
         </div>
       </div>
     </article>
@@ -92,9 +102,24 @@ export const LibraryPage: FC<{
   activeTag?: string;
   activeStatus?: string;
   activeSourceType?: string;
+  activeRead?: string;
   allTags: string[];
   nextCursor?: string;
-}> = ({ results, activeTag, activeStatus, activeSourceType, allTags, nextCursor }) => {
+}> = ({ results, activeTag, activeStatus, activeSourceType, activeRead, allTags, nextCursor }) => {
+  function filterUrl(overrides: Record<string, string | undefined>) {
+    const params: Record<string, string> = {};
+    if (activeTag) params.tag = activeTag;
+    if (activeStatus) params.status = activeStatus;
+    if (activeSourceType) params.source_type = activeSourceType;
+    if (activeRead) params.read = activeRead;
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v) params[k] = v;
+      else delete params[k];
+    }
+    const qs = new URLSearchParams(params).toString();
+    return `/library${qs ? `?${qs}` : ""}`;
+  }
+
   return (
     <Layout title="Library" activePage="library">
       {/* Filters */}
@@ -105,14 +130,14 @@ export const LibraryPage: FC<{
             <div class="filter-options">
               <a
                 class={`filter-option ${!activeTag ? "active" : ""}`}
-                href="/library"
+                href={filterUrl({ tag: undefined })}
               >
                 All
               </a>
               {allTags.map((tag) => (
                 <a
                   class={`filter-option ${activeTag === tag ? "active" : ""}`}
-                  href={`/library?tag=${encodeURIComponent(tag)}${activeStatus ? `&status=${activeStatus}` : ""}${activeSourceType ? `&source_type=${activeSourceType}` : ""}`}
+                  href={filterUrl({ tag })}
                 >
                   {tag}
                 </a>
@@ -135,7 +160,7 @@ export const LibraryPage: FC<{
               ].map(({ value, label }) => (
                 <a
                   class={`filter-option ${(activeSourceType || "") === value ? "active" : ""}`}
-                  href={`/library?${activeTag ? `tag=${encodeURIComponent(activeTag)}&` : ""}${activeStatus ? `status=${activeStatus}&` : ""}${value ? `source_type=${value}` : ""}`}
+                  href={filterUrl({ source_type: value || undefined })}
                 >
                   {label}
                 </a>
@@ -150,9 +175,28 @@ export const LibraryPage: FC<{
               {["", "pending", "processed", "failed"].map((s) => (
                 <a
                   class={`filter-option ${(activeStatus || "") === s ? "active" : ""}`}
-                  href={`/library?${activeTag ? `tag=${encodeURIComponent(activeTag)}&` : ""}${s ? `status=${s}&` : ""}${activeSourceType ? `source_type=${activeSourceType}` : ""}`}
+                  href={filterUrl({ status: s || undefined })}
                 >
                   {s || "All"}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-group">
+            <span class="filter-label">Read</span>
+            <div class="filter-options">
+              {[
+                { value: "", label: "All" },
+                { value: "false", label: "Unread" },
+                { value: "true", label: "Read" },
+              ].map(({ value, label }) => (
+                <a
+                  class={`filter-option ${(activeRead || "") === value ? "active" : ""}`}
+                  href={filterUrl({ read: value || undefined })}
+                >
+                  {label}
                 </a>
               ))}
             </div>
@@ -185,7 +229,7 @@ export const LibraryPage: FC<{
         <div class="pagination">
           <a
             class="load-more"
-            href={`/library?cursor=${nextCursor}${activeTag ? `&tag=${encodeURIComponent(activeTag)}` : ""}${activeStatus ? `&status=${activeStatus}` : ""}${activeSourceType ? `&source_type=${activeSourceType}` : ""}`}
+            href={filterUrl({ cursor: nextCursor })}
           >
             Load more
           </a>

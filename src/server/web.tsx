@@ -52,10 +52,11 @@ web.get("/library", async (c) => {
   const tag = c.req.query("tag") || undefined;
   const sourceType = c.req.query("source_type") || undefined;
   const status = c.req.query("status") || undefined;
+  const readFilter = c.req.query("read") || undefined;
   const cursor = c.req.query("cursor") || undefined;
   const limit = 50;
 
-  const results = await list({ tag, sourceType, status, cursor, limit: limit + 1 });
+  const results = await list({ tag, sourceType, status, read: readFilter, cursor, limit: limit + 1 });
 
   // Check if there's a next page
   let nextCursor: string | undefined;
@@ -74,6 +75,7 @@ web.get("/library", async (c) => {
       activeTag={tag}
       activeStatus={status}
       activeSourceType={sourceType}
+      activeRead={readFilter}
       allTags={allTags}
       nextCursor={nextCursor}
     />
@@ -107,10 +109,16 @@ web.get("/items/:id", async (c) => {
           status: "failed",
           error: `Item ${id} not found.`,
           tags: [],
+          read: false,
         }}
       />,
       404
     );
+  }
+
+  // Mark as read when viewing detail page
+  if (!item.read) {
+    await db.update(items).set({ read: true }).where(eq(items.id, id));
   }
 
   const tagRows = await db
@@ -123,6 +131,7 @@ web.get("/items/:id", async (c) => {
     <ItemPage
       item={{
         ...item,
+        read: true,
         tags: tagRows.map((t) => t.name),
       }}
     />

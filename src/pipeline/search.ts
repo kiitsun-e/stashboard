@@ -14,6 +14,7 @@ export interface SearchResult {
   savedAt: number;
   status: string;
   sourceType: string;
+  read: boolean;
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -85,6 +86,7 @@ export async function search(
       savedAt: item.savedAt,
       status: item.status,
       sourceType: item.sourceType,
+      read: item.read,
     });
 
     if (results.length >= limit) break;
@@ -101,6 +103,7 @@ export async function list(
     tag?: string;
     sourceType?: string;
     status?: string;
+    read?: string;
     cursor?: string;
     limit?: number;
   } = {}
@@ -118,6 +121,8 @@ export async function list(
   // Apply filters
   if (sourceType) allItems = allItems.filter((i) => i.sourceType === sourceType);
   if (options.status) allItems = allItems.filter((i) => i.status === options.status);
+  if (options.read === "true") allItems = allItems.filter((i) => i.read);
+  if (options.read === "false") allItems = allItems.filter((i) => !i.read);
   if (cursor) allItems = allItems.filter((i) => i.id < cursor);
 
   const results: SearchResult[] = [];
@@ -135,6 +140,7 @@ export async function list(
       savedAt: item.savedAt,
       status: item.status,
       sourceType: item.sourceType,
+      read: item.read,
     });
 
     if (results.length >= limit) break;

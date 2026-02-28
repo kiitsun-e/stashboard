@@ -85,6 +85,76 @@ export const Layout: FC<
               });
           }
 
+          function markRead(el) {
+            var id = el.getAttribute('data-item-id');
+            if (id) fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ read: true })
+            });
+          }
+
+          function markReadFromCard(el) {
+            var id = el.getAttribute('data-item-id');
+            if (!id) return;
+            var card = el.closest('.card');
+            if (card) {
+              card.classList.add('is-read');
+              var dot = card.querySelector('.unread-dot');
+              if (dot) dot.remove();
+              var readBtn = card.querySelector('.card-read-btn');
+              if (readBtn) {
+                readBtn.setAttribute('data-read', 'true');
+                readBtn.textContent = 'unread';
+              }
+            }
+            fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ read: true })
+            });
+          }
+
+          function toggleCardRead(btn) {
+            var id = btn.getAttribute('data-item-id');
+            var isRead = btn.getAttribute('data-read') === 'true';
+            var newRead = !isRead;
+            btn.setAttribute('data-read', String(newRead));
+            btn.textContent = newRead ? 'unread' : 'read';
+            var card = btn.closest('.card');
+            if (card) {
+              card.classList.toggle('is-read', newRead);
+              var dot = card.querySelector('.unread-dot');
+              if (newRead && dot) dot.remove();
+              if (!newRead && !card.querySelector('.unread-dot')) {
+                var title = card.querySelector('.card-title');
+                if (title) {
+                  var d = document.createElement('span');
+                  d.className = 'unread-dot';
+                  title.insertBefore(d, title.firstChild);
+                }
+              }
+            }
+            fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ read: newRead })
+            });
+          }
+
+          function toggleRead(btn) {
+            var id = btn.getAttribute('data-item-id');
+            var isRead = btn.getAttribute('data-read') === 'true';
+            var newRead = !isRead;
+            btn.setAttribute('data-read', String(newRead));
+            btn.textContent = newRead ? 'mark unread' : 'mark read';
+            fetch('/items/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ read: newRead })
+            });
+          }
+
           function handleDelete(btn) {
             if (!btn.classList.contains('confirming')) {
               btn.classList.add('confirming');

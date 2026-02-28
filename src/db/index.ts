@@ -53,6 +53,13 @@ export function migrate() {
     // Column already exists
   }
 
+  // Add read column for existing databases
+  try {
+    sqlite.exec("ALTER TABLE items ADD COLUMN read INTEGER NOT NULL DEFAULT 0");
+  } catch {
+    // Column already exists
+  }
+
   // One-off: clean up orphaned tags from past deletes
   sqlite.exec(
     "DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM item_tags)"

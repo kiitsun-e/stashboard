@@ -129,6 +129,7 @@ routes.patch("/items/:id", async (c) => {
     note?: string;
     add_tags?: string[];
     remove_tags?: string[];
+    read?: boolean;
   }>();
 
   const [item] = await db
@@ -146,6 +147,14 @@ routes.patch("/items/:id", async (c) => {
     await db
       .update(items)
       .set({ userNote: body.note })
+      .where(eq(items.id, id));
+  }
+
+  // Update read status if provided
+  if (body.read !== undefined) {
+    await db
+      .update(items)
+      .set({ read: body.read })
       .where(eq(items.id, id));
   }
 

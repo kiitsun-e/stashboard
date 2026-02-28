@@ -15,6 +15,7 @@ interface ItemDetail {
   status: string;
   error: string | null;
   tags: string[];
+  read: boolean;
 }
 
 function formatDate(unixSeconds: number): string {
@@ -73,9 +74,18 @@ export const ItemPage: FC<{ item: ItemDetail }> = ({ item }) => {
 
         {/* Actions */}
         <div class="item-actions">
-          <a href={item.url} target="_blank" rel="noopener" class="item-open">
+          <a href={item.url} target="_blank" rel="noopener" class="item-open" data-item-id={item.id} onclick="markRead(this)">
             Open Original &rarr;
           </a>
+          <button
+            class="item-read-btn"
+            type="button"
+            data-item-id={item.id}
+            data-read={item.read ? "true" : "false"}
+            onclick="toggleRead(this)"
+          >
+            {item.read ? "mark unread" : "mark read"}
+          </button>
           <button
             class="item-delete-btn"
             type="button"

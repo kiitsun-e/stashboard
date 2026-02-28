@@ -39,10 +39,11 @@ const ResultItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
   const typeLabel = SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType;
   return (
-    <article class="card">
+    <article class={`card${item.read ? " is-read" : ""}`} data-item-id={item.id}>
       <div class="card-body">
         <h2 class="card-title">
-          <a href={item.url} target="_blank" rel="noopener">
+          {!item.read && <span class="unread-dot" />}
+          <a href={item.url} target="_blank" rel="noopener" data-item-id={item.id} onclick="markReadFromCard(this)">
             {displayTitle}
           </a>
         </h2>
