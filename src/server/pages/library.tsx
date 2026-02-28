@@ -28,7 +28,6 @@ function hostname(url: string): string {
 const SOURCE_TYPE_LABELS: Record<string, string> = {
   article: "article",
   tweet: "tweet",
-  "long-tweet": "long tweet",
   "tweet-article": "tweet article",
   github: "github",
   video: "video",
@@ -129,7 +128,6 @@ export const LibraryPage: FC<{
                 { value: "", label: "All" },
                 { value: "article", label: "Article" },
                 { value: "tweet", label: "Tweet" },
-                { value: "long-tweet", label: "Long tweet" },
                 { value: "tweet-article", label: "Tweet article" },
                 { value: "github", label: "GitHub" },
                 { value: "video", label: "Video" },

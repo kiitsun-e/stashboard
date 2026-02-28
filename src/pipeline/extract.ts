@@ -14,7 +14,7 @@ const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_CONTENT_SIZE = 500 * 1024; // 500KB extracted content
 const MAX_REDIRECTS = 3;
 
-export type SourceType = "article" | "tweet" | "long-tweet" | "tweet-article" | "github" | "video" | "pdf" | "other";
+export type SourceType = "article" | "tweet" | "tweet-article" | "github" | "video" | "pdf" | "other";
 
 export interface ExtractedContent {
   title: string;
@@ -123,14 +123,8 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
         const author = tweet.author?.username ?? "unknown";
         const name = tweet.author?.name ?? author;
 
-        // Classify: article field present → tweet-article,
-        // text > 280 chars → long-tweet, otherwise → tweet
-        let resolvedType: SourceType = "tweet";
-        if (tweet.article) {
-          resolvedType = "tweet-article";
-        } else if ((tweet.text?.length ?? 0) > 280) {
-          resolvedType = "long-tweet";
-        }
+        // Classify: article field present → tweet-article, otherwise → tweet
+        const resolvedType: SourceType = tweet.article ? "tweet-article" : "tweet";
 
         return {
           title: `${name} (@${author}) on X`,
