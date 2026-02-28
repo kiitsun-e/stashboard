@@ -9,12 +9,16 @@ export const Layout: FC<
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title ? `${title} — Stashboard` : "Stashboard"}</title>
+        <link rel="icon" href="/public/favicon.ico" sizes="any" />
+        <link rel="icon" href="/public/favicon-32.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/public/apple-touch-icon.png" />
         <link rel="stylesheet" href="/public/styles.css" />
       </head>
       <body>
         <div class="shell">
           <header class="header">
-            <a href="/" style={{ textDecoration: "none" }}>
+            <a href="/" class="header-brand">
+              <img src="/public/logo.png" alt="" class="header-logo" />
               <h1 class="header-title">Stashboard</h1>
             </a>
             <nav class="header-nav">

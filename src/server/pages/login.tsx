@@ -7,11 +7,15 @@ export const LoginPage: FC<{ error?: string }> = ({ error }) => {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Login — Stashboard</title>
+        <link rel="icon" href="/public/favicon.ico" sizes="any" />
+        <link rel="icon" href="/public/favicon-32.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/public/apple-touch-icon.png" />
         <link rel="stylesheet" href="/public/styles.css" />
       </head>
       <body>
         <div class="login-shell">
           <form method="POST" action="/login" class="login-form">
+            <img src="/public/logo.png" alt="" class="login-logo" />
             <h1 class="login-title">Stashboard</h1>
             {error && <p class="login-error">{error}</p>}
             <input

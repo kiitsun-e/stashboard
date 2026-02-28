@@ -128,9 +128,25 @@ a:hover {
 /* --- Header --- */
 .header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-7);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+
+.header-logo {
+  height: 28px;
+  width: auto;
+}
+
+[data-theme="dark"] .header-logo {
+  filter: invert(1);
 }
 
 .header-title {
@@ -144,7 +160,7 @@ a:hover {
 .header-nav {
   display: flex;
   gap: var(--space-4);
-  align-items: baseline;
+  align-items: center;
 }
 
 .header-nav a {
@@ -1035,6 +1051,16 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+.login-logo {
+  height: 48px;
+  width: auto;
+  align-self: flex-start;
+}
+
+[data-theme="dark"] .login-logo {
+  filter: invert(1);
 }
 
 .login-title {
