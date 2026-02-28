@@ -3,7 +3,7 @@
   "steps": {
     "install-uv": {
       "commands": [
-        { "cmd": "curl -LsSf https://astral.sh/uv/install.sh | sh", "customName": "Install uv package manager" }
+        { "cmd": "sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'", "customName": "Install uv package manager" }
       ]
     }
   },
