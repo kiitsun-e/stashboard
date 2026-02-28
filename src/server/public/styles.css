@@ -1020,6 +1020,70 @@ a:hover {
   margin-bottom: 0;
 }
 
+/* --- Login --- */
+.login-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-4);
+}
+
+.login-form {
+  width: 100%;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.login-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.login-error {
+  color: var(--status-failed);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.login-input {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.9rem;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.login-input:focus {
+  border-color: var(--accent);
+}
+
+.login-btn {
+  font-family: 'Geist Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-muted);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.login-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
 /* --- Responsive --- */
 @media (max-width: 600px) {
   .shell {

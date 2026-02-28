@@ -1,17 +1,38 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
+import { setCookie } from "hono/cookie";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { items, tags, itemTags } from "../db/schema";
 import { SearchPage } from "./pages/search";
 import { LibraryPage } from "./pages/library";
 import { ItemPage } from "./pages/item";
+import { LoginPage } from "./pages/login";
 import { search, list } from "../pipeline/search";
 
 export const web = new Hono();
 
 // Static files
 web.use("/public/*", serveStatic({ root: "src/server/" }));
+
+// Login
+web.get("/login", (c) => c.html(<LoginPage />));
+
+web.post("/login", async (c) => {
+  const body = await c.req.parseBody();
+  const token = process.env.STASHBOARD_TOKEN;
+  if (!token || body.token !== token) {
+    return c.html(<LoginPage error="Wrong token." />, 401);
+  }
+  setCookie(c, "stashboard_auth", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  });
+  return c.redirect("/");
+});
 
 // Search page (home)
 web.get("/", async (c) => {
