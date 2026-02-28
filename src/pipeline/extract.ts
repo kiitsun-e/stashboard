@@ -101,7 +101,6 @@ async function extractVideo(url: string): Promise<ExtractedContent> {
     youtubeTranscript: "web",
     format: "text",
     timeoutMs: SUMMARIZE_TIMEOUT,
-    maxCharacters: MAX_CONTENT_SIZE,
   });
 
   const title = result.title || `YouTube: ${url}`;
@@ -147,11 +146,7 @@ async function extractPdf(url: string): Promise<ExtractedContent> {
   // Remove trailing metrics line (e.g., "12.3s · text/plain · 45,231 chars")
   let content = stdout.trim().replace(/\n\n[\d.]+s\s+·\s+[^\n]+$/m, "").trim();
 
-  if (content.length > MAX_CONTENT_SIZE) {
-    content = content.slice(0, MAX_CONTENT_SIZE) + "\n\n[Content truncated]";
-  }
-
-  // Format raw PDF text into structured markdown with proper headers
+  // Format raw PDF text into structured markdown — chunks in parallel for long docs
   if (content) {
     content = await formatContent(content, "pdf");
   }
