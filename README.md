@@ -40,7 +40,7 @@ Tweet extraction degrades gracefully — if tokens aren't set, you get the URL a
 ### Install and run
 
 ```bash
-git clone https://github.com/yourusername/stashboard.git
+git clone https://github.com/kiitsun-e/stashboard.git
 cd stashboard
 bun install
 ```
