@@ -8,6 +8,29 @@ export interface SummaryResult {
 }
 
 /**
+ * Format a raw transcript into structured markdown with section headers and paragraphs.
+ * Used for YouTube video transcripts that are otherwise walls of text.
+ */
+export async function formatTranscript(rawText: string): Promise<string> {
+  const capped = rawText.slice(0, 30_000);
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: `Format this video transcript into clean, readable markdown. Add ## section headers where the topic shifts. Organize into paragraphs. Clean up filler words and false starts, but preserve all substantive content and meaning. Return ONLY the formatted markdown.\n\n${capped}`,
+      },
+    ],
+  });
+
+  const text =
+    message.content[0].type === "text" ? message.content[0].text : "";
+  return text || rawText;
+}
+
+/**
  * Generate a summary and tags for content using Claude Haiku
  */
 export async function summarize(

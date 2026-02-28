@@ -8,7 +8,12 @@ import {
   type TweetData,
 } from "@steipete/bird";
 import { extractTweetId } from "@steipete/bird/dist/lib/extract-tweet-id.js";
+import {
+  createLinkPreviewClient,
+  type LinkPreviewClient,
+} from "@steipete/summarize-core/content";
 import { validateUrl } from "./ssrf";
+import { formatTranscript } from "./summarize";
 
 const FETCH_TIMEOUT = 15_000;
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -65,6 +70,120 @@ export const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     }),
   },
 };
+
+// --- Summarize-core client for video/PDF extraction ---
+
+let _linkClient: LinkPreviewClient | null = null;
+
+function getLinkClient(): LinkPreviewClient {
+  if (!_linkClient) {
+    _linkClient = createLinkPreviewClient({
+      ytDlpPath: null,
+      scrapeWithFirecrawl: null,
+    });
+  }
+  return _linkClient;
+}
+
+const SUMMARIZE_TIMEOUT = 60_000;
+
+function markdownToSafeHtml(md: string): string {
+  if (!md) return "";
+  return sanitizeHtml(
+    marked.parse(md, { async: false }) as string,
+    SANITIZE_OPTIONS
+  );
+}
+
+async function extractVideo(url: string): Promise<ExtractedContent> {
+  const client = getLinkClient();
+  const result = await client.fetchLinkContent(url, {
+    youtubeTranscript: "web",
+    format: "text",
+    timeoutMs: SUMMARIZE_TIMEOUT,
+    maxCharacters: MAX_CONTENT_SIZE,
+  });
+
+  const title = result.title || `YouTube: ${url}`;
+  let content = result.content || "";
+
+  // Format the raw transcript into structured markdown with headers
+  if (content) {
+    content = await formatTranscript(content);
+  }
+
+  return {
+    title,
+    content,
+    contentHtml: markdownToSafeHtml(content),
+    html: "",
+    sourceType: "video",
+  };
+}
+
+async function extractPdf(url: string): Promise<ExtractedContent> {
+  // summarize-core can't handle PDF content-type directly — shell out to the CLI
+  // which has a preprocessing pipeline for binary formats
+  const binPath = await findSummarizeBin();
+  if (!binPath) {
+    throw new Error("summarize binary not found");
+  }
+
+  const proc = Bun.spawn(
+    [binPath, url, "--extract", "--format", "md", "--plain", "--no-color", "--timeout", "60s"],
+    { stdout: "pipe", stderr: "pipe" }
+  );
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+
+  if (exitCode !== 0 || !stdout.trim()) {
+    throw new Error(`summarize exit ${exitCode}: ${stderr.slice(0, 200)}`);
+  }
+
+  // Remove trailing metrics line (e.g., "12.3s · text/plain · 45,231 chars")
+  let content = stdout.trim().replace(/\n\n[\d.]+s\s+·\s+[^\n]+$/m, "").trim();
+
+  if (content.length > MAX_CONTENT_SIZE) {
+    content = content.slice(0, MAX_CONTENT_SIZE) + "\n\n[Content truncated]";
+  }
+
+  // Extract title: first markdown heading, or first paragraph block, or filename
+  const headingMatch = content.match(/^#{1,3}\s+(.+)$/m);
+  // For PDFs without markdown headings, grab the first paragraph (may span lines)
+  const firstParagraph = content.split(/\n\n/)[0]?.trim().replace(/\s+/g, " ");
+  const filename = decodeURIComponent(
+    url.split("/").pop()?.replace(".pdf", "") || "PDF"
+  );
+  const title =
+    headingMatch?.[1] ||
+    (firstParagraph && firstParagraph.length <= 200 ? firstParagraph : null) ||
+    filename;
+
+  return {
+    title,
+    content,
+    contentHtml: markdownToSafeHtml(content),
+    html: "",
+    sourceType: "pdf",
+  };
+}
+
+async function findSummarizeBin(): Promise<string | null> {
+  // Check node_modules/.bin first (works in production/Railway)
+  const localBin = "node_modules/.bin/summarize";
+  if (await Bun.file(localBin).exists()) return localBin;
+
+  // Fall back to global PATH
+  const which = Bun.spawn(["which", "summarize"], { stdout: "pipe" });
+  const path = (await new Response(which.stdout).text()).trim();
+  if (await which.exited === 0 && path) return path;
+
+  return null;
+}
 
 function detectSourceType(url: string): SourceType {
   const host = new URL(url).hostname.replace("www.", "");
@@ -151,6 +270,26 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
       html: "",
       sourceType: "tweet",
     };
+  }
+
+  // Video (YouTube): extract transcript via summarize-core
+  if (sourceType === "video") {
+    try {
+      return await extractVideo(url);
+    } catch (err) {
+      console.warn(`[summarize] Video extraction failed: ${err}`);
+      // Fall through to generic Readability extraction
+    }
+  }
+
+  // PDF: extract text via summarize-core
+  if (sourceType === "pdf") {
+    try {
+      return await extractPdf(url);
+    } catch (err) {
+      console.warn(`[summarize] PDF extraction failed: ${err}`);
+      // Fall through to generic Readability extraction
+    }
   }
 
   const response = await safeFetch(url);
