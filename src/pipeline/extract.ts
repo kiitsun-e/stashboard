@@ -1,6 +1,12 @@
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import sanitizeHtml from "sanitize-html";
+import {
+  TwitterClient,
+  resolveCredentials,
+  type TweetData,
+} from "@steipete/bird";
+import { extractTweetId } from "@steipete/bird/dist/lib/extract-tweet-id.js";
 import { validateUrl } from "./ssrf";
 
 const FETCH_TIMEOUT = 15_000;
@@ -105,8 +111,27 @@ async function safeFetch(url: string, redirectCount = 0): Promise<Response> {
 export async function extractContent(url: string): Promise<ExtractedContent> {
   const sourceType = detectSourceType(url);
 
-  // Tweets: X blocks scraping, degrade gracefully
+  // Tweets: fetch via bird (X's internal API) with graceful fallback
   if (sourceType === "tweet") {
+    try {
+      const tweet = await fetchTweet(url);
+      if (tweet) {
+        const content = formatTweetText(tweet);
+        const contentHtml = formatTweetHtml(tweet);
+        const author = tweet.author?.username ?? "unknown";
+        const name = tweet.author?.name ?? author;
+        return {
+          title: `${name} (@${author}) on X`,
+          content,
+          contentHtml,
+          html: "",
+          sourceType: "tweet",
+        };
+      }
+    } catch (err) {
+      console.warn(`[bird] Failed to fetch tweet: ${err}`);
+    }
+    // Fallback: no content, pipeline still works with title + user note
     return {
       title: `Tweet: ${url}`,
       content: "",
@@ -160,4 +185,73 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
     html: html.length <= 2 * 1024 * 1024 ? html : "", // skip archive if >2MB
     sourceType,
   };
+}
+
+// --- Bird (X/Twitter) helpers ---
+
+async function fetchTweet(url: string): Promise<TweetData | null> {
+  const authToken = process.env.AUTH_TOKEN;
+  const ct0 = process.env.CT0;
+  if (!authToken || !ct0) {
+    console.warn("[bird] AUTH_TOKEN and CT0 env vars not set, skipping tweet extraction");
+    return null;
+  }
+
+  const tweetId = extractTweetId(url);
+  const { cookies } = await resolveCredentials({ authToken, ct0 });
+  const client = new TwitterClient({ cookies, timeoutMs: FETCH_TIMEOUT });
+  const result = await client.getTweet(tweetId);
+
+  if (!result.success || !result.tweet) {
+    console.warn(`[bird] Could not fetch tweet ${tweetId}: ${result.error ?? "unknown error"}`);
+    return null;
+  }
+
+  return result.tweet;
+}
+
+function formatTweetText(tweet: TweetData): string {
+  const parts: string[] = [];
+  const author = tweet.author?.username ?? "unknown";
+  parts.push(`@${author}: ${tweet.text}`);
+
+  if (tweet.quotedTweet) {
+    const qAuthor = tweet.quotedTweet.author?.username ?? "unknown";
+    parts.push(`\nQuoting @${qAuthor}: ${tweet.quotedTweet.text}`);
+  }
+
+  return parts.join("\n");
+}
+
+function formatTweetHtml(tweet: TweetData): string {
+  const author = tweet.author?.username ?? "unknown";
+  const name = tweet.author?.name ?? author;
+  const text = escapeHtml(tweet.text).replace(/\n/g, "<br>");
+
+  let html = `<p><strong>${escapeHtml(name)}</strong> <span class="text-secondary">@${escapeHtml(author)}</span></p><p>${text}</p>`;
+
+  if (tweet.media?.length) {
+    for (const m of tweet.media) {
+      if (m.type === "photo") {
+        html += `<figure><img src="${escapeHtml(m.url)}" alt="" loading="lazy"></figure>`;
+      }
+    }
+  }
+
+  if (tweet.quotedTweet) {
+    const qAuthor = tweet.quotedTweet.author?.username ?? "unknown";
+    const qName = tweet.quotedTweet.author?.name ?? qAuthor;
+    const qText = escapeHtml(tweet.quotedTweet.text).replace(/\n/g, "<br>");
+    html += `<blockquote><p><strong>${escapeHtml(qName)}</strong> <span class="text-secondary">@${escapeHtml(qAuthor)}</span></p><p>${qText}</p></blockquote>`;
+  }
+
+  return sanitizeHtml(html, SANITIZE_OPTIONS);
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
