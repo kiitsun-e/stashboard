@@ -25,9 +25,20 @@ function hostname(url: string): string {
   }
 }
 
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  article: "article",
+  tweet: "tweet",
+  "long-tweet": "long tweet",
+  "tweet-article": "tweet article",
+  github: "github",
+  video: "video",
+  pdf: "pdf",
+  other: "other",
+};
+
 const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
-  const sourceType = item.status === "processed" ? (item as any).sourceType || "" : "";
+  const typeLabel = SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType;
   return (
     <article class="card">
       <div class="card-body">
@@ -40,12 +51,8 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
           <span class="card-host">{hostname(item.url)}</span>
           <span class="card-sep">&middot;</span>
           <span class="card-time">{timeAgo(item.savedAt)}</span>
-          {sourceType && (
-            <>
-              <span class="card-sep">&middot;</span>
-              <span class="card-type">{sourceType}</span>
-            </>
-          )}
+          <span class="card-sep">&middot;</span>
+          <span class="card-type">{typeLabel}</span>
           {item.status !== "processed" && (
             <span class="card-status" data-status={item.status}>
               {item.status}
@@ -109,6 +116,30 @@ export const LibraryPage: FC<{
                   href={`/library?tag=${encodeURIComponent(tag)}${activeStatus ? `&status=${activeStatus}` : ""}${activeSourceType ? `&source_type=${activeSourceType}` : ""}`}
                 >
                   {tag}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-group">
+            <span class="filter-label">Type</span>
+            <div class="filter-options">
+              {[
+                { value: "", label: "All" },
+                { value: "article", label: "Article" },
+                { value: "tweet", label: "Tweet" },
+                { value: "long-tweet", label: "Long tweet" },
+                { value: "tweet-article", label: "Tweet article" },
+                { value: "github", label: "GitHub" },
+                { value: "video", label: "Video" },
+                { value: "pdf", label: "PDF" },
+              ].map(({ value, label }) => (
+                <a
+                  class={`filter-option ${(activeSourceType || "") === value ? "active" : ""}`}
+                  href={`/library?${activeTag ? `tag=${encodeURIComponent(activeTag)}&` : ""}${activeStatus ? `status=${activeStatus}&` : ""}${value ? `source_type=${value}` : ""}`}
+                >
+                  {label}
                 </a>
               ))}
             </div>

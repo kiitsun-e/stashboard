@@ -25,8 +25,20 @@ function hostname(url: string): string {
   }
 }
 
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  article: "article",
+  tweet: "tweet",
+  "long-tweet": "long tweet",
+  "tweet-article": "tweet article",
+  github: "github",
+  video: "video",
+  pdf: "pdf",
+  other: "other",
+};
+
 const ResultItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
+  const typeLabel = SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType;
   return (
     <article class="card">
       <div class="card-body">
@@ -39,6 +51,8 @@ const ResultItem: FC<{ item: SearchResult }> = ({ item }) => {
           <span class="card-host">{hostname(item.url)}</span>
           <span class="card-sep">&middot;</span>
           <span class="card-time">{timeAgo(item.savedAt)}</span>
+          <span class="card-sep">&middot;</span>
+          <span class="card-type">{typeLabel}</span>
           {item.similarity !== undefined && (
             <>
               <span class="card-sep">&middot;</span>

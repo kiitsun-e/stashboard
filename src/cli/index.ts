@@ -1,5 +1,5 @@
 import { migrate } from "../db";
-import { saveUrl, processItem, processAll } from "../pipeline/save";
+import { saveUrl, processItem, processAll, reclassifyTweets } from "../pipeline/save";
 import { search, list } from "../pipeline/search";
 
 const HELP = `
@@ -12,6 +12,7 @@ Usage:
   stash open <id>                     Open original URL in browser
   stash read <id>                     View extracted content
   stash retry [id]                    Reprocess failed/pending items
+  stash reclassify                    Reclassify existing tweets
   stash help                          Show this help
 `.trim();
 
@@ -202,6 +203,13 @@ async function main() {
         const count = await processAll();
         console.log(`Processed ${count} items.`);
       }
+      break;
+    }
+
+    case "reclassify": {
+      console.log("Reclassifying existing tweets...");
+      const count = await reclassifyTweets();
+      console.log(`Reclassified ${count} item${count !== 1 ? "s" : ""}.`);
       break;
     }
 

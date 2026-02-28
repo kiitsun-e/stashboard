@@ -141,6 +141,38 @@ export async function processItem(id: string): Promise<void> {
 }
 
 /**
+ * Reclassify existing tweet items into tweet/long-tweet/tweet-article
+ * without re-running summarize or embed (cheap — only re-extracts).
+ */
+export async function reclassifyTweets(): Promise<number> {
+  const tweets = await db
+    .select({ id: items.id, url: items.url })
+    .from(items)
+    .where(eq(items.sourceType, "tweet"));
+
+  let reclassified = 0;
+  for (const item of tweets) {
+    try {
+      console.log(`  Reclassifying ${item.url}...`);
+      const extracted = await extractContent(item.url);
+      if (extracted.sourceType !== "tweet") {
+        await db
+          .update(items)
+          .set({ sourceType: extracted.sourceType })
+          .where(eq(items.id, item.id));
+        console.log(`    → ${extracted.sourceType}`);
+        reclassified++;
+      } else {
+        console.log(`    → tweet (unchanged)`);
+      }
+    } catch (e: any) {
+      console.error(`  Failed to reclassify ${item.id}: ${e.message}`);
+    }
+  }
+  return reclassified;
+}
+
+/**
  * Process all pending/failed items.
  */
 export async function processAll(): Promise<number> {

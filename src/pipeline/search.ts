@@ -13,6 +13,7 @@ export interface SearchResult {
   similarity?: number;
   savedAt: number;
   status: string;
+  sourceType: string;
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -83,6 +84,7 @@ export async function search(
       similarity,
       savedAt: item.savedAt,
       status: item.status,
+      sourceType: item.sourceType,
     });
 
     if (results.length >= limit) break;
@@ -132,6 +134,7 @@ export async function list(
       userNote: item.userNote,
       savedAt: item.savedAt,
       status: item.status,
+      sourceType: item.sourceType,
     });
 
     if (results.length >= limit) break;

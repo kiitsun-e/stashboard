@@ -42,6 +42,17 @@ function hostname(url: string): string {
   }
 }
 
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  article: "article",
+  tweet: "tweet",
+  "long-tweet": "long tweet",
+  "tweet-article": "tweet article",
+  github: "github",
+  video: "video",
+  pdf: "pdf",
+  other: "other",
+};
+
 export const ItemPage: FC<{ item: ItemDetail }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
 
@@ -112,7 +123,7 @@ export const ItemPage: FC<{ item: ItemDetail }> = ({ item }) => {
         {/* Metadata */}
         <dl class="item-meta-grid">
           <dt>Source</dt>
-          <dd>{item.sourceType}</dd>
+          <dd>{SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType}</dd>
           <dt>Saved</dt>
           <dd>{formatDate(item.savedAt)} at {formatTime(item.savedAt)}</dd>
           {item.processedAt && (

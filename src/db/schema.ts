@@ -9,7 +9,7 @@ export const items = sqliteTable("items", {
   userNote: text("user_note"),
   summary: text("summary"),
   sourceType: text("source_type", {
-    enum: ["article", "tweet", "video", "pdf", "other"],
+    enum: ["article", "tweet", "long-tweet", "tweet-article", "github", "video", "pdf", "other"],
   })
     .notNull()
     .default("other"),

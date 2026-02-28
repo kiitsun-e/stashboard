@@ -3,7 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { db } from "../db";
 import { items, tags, itemTags } from "../db/schema";
-import { saveUrl, processItem, processAll } from "../pipeline/save";
+import { saveUrl, processItem, processAll, reclassifyTweets } from "../pipeline/save";
 import { search, list } from "../pipeline/search";
 
 const ARCHIVE_DIR = "data/archive";
@@ -205,6 +205,12 @@ routes.patch("/items/:id", async (c) => {
     embedding: undefined,
     tags: tagRows.map((t) => t.name),
   });
+});
+
+// POST /reclassify — reclassify existing tweets into subtypes
+routes.post("/reclassify", async (c) => {
+  const count = await reclassifyTweets();
+  return c.json({ reclassified: count });
 });
 
 // POST /process

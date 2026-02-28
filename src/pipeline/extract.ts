@@ -14,12 +14,14 @@ const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_CONTENT_SIZE = 500 * 1024; // 500KB extracted content
 const MAX_REDIRECTS = 3;
 
+export type SourceType = "article" | "tweet" | "long-tweet" | "tweet-article" | "github" | "video" | "pdf" | "other";
+
 export interface ExtractedContent {
   title: string;
   content: string; // plain text for search/embedding
   contentHtml: string; // sanitized HTML for display
   html: string; // raw HTML for archiving
-  sourceType: "article" | "tweet" | "video" | "pdf" | "other";
+  sourceType: SourceType;
 }
 
 const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
@@ -63,12 +65,12 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   },
 };
 
-function detectSourceType(
-  url: string
-): "article" | "tweet" | "video" | "pdf" | "other" {
+function detectSourceType(url: string): SourceType {
   const host = new URL(url).hostname.replace("www.", "");
 
+  // X/Twitter — refined to long-tweet or tweet-article after fetching content
   if (host === "x.com" || host === "twitter.com") return "tweet";
+  if (host === "github.com" || host === "gist.github.com") return "github";
   if (host === "youtube.com" || host === "youtu.be") return "video";
   if (url.endsWith(".pdf")) return "pdf";
   return "article";
@@ -111,7 +113,7 @@ async function safeFetch(url: string, redirectCount = 0): Promise<Response> {
 export async function extractContent(url: string): Promise<ExtractedContent> {
   const sourceType = detectSourceType(url);
 
-  // Tweets: fetch via bird (X's internal API) with graceful fallback
+  // Tweets & X content: fetch via bird (X's internal API) with graceful fallback
   if (sourceType === "tweet") {
     try {
       const tweet = await fetchTweet(url);
@@ -120,12 +122,22 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
         const contentHtml = formatTweetHtml(tweet);
         const author = tweet.author?.username ?? "unknown";
         const name = tweet.author?.name ?? author;
+
+        // Classify: article field present → tweet-article,
+        // text > 280 chars → long-tweet, otherwise → tweet
+        let resolvedType: SourceType = "tweet";
+        if (tweet.article) {
+          resolvedType = "tweet-article";
+        } else if ((tweet.text?.length ?? 0) > 280) {
+          resolvedType = "long-tweet";
+        }
+
         return {
           title: `${name} (@${author}) on X`,
           content,
           contentHtml,
           html: "",
-          sourceType: "tweet",
+          sourceType: resolvedType,
         };
       }
     } catch (err) {
