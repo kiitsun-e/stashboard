@@ -13,7 +13,7 @@ import {
   type LinkPreviewClient,
 } from "@steipete/summarize-core/content";
 import { validateUrl } from "./ssrf";
-import { formatTranscript } from "./summarize";
+import { formatContent } from "./summarize";
 
 const FETCH_TIMEOUT = 15_000;
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -109,7 +109,7 @@ async function extractVideo(url: string): Promise<ExtractedContent> {
 
   // Format the raw transcript into structured markdown with headers
   if (content) {
-    content = await formatTranscript(content);
+    content = await formatContent(content, "video");
   }
 
   return {
@@ -149,6 +149,11 @@ async function extractPdf(url: string): Promise<ExtractedContent> {
 
   if (content.length > MAX_CONTENT_SIZE) {
     content = content.slice(0, MAX_CONTENT_SIZE) + "\n\n[Content truncated]";
+  }
+
+  // Format raw PDF text into structured markdown with proper headers
+  if (content) {
+    content = await formatContent(content, "pdf");
   }
 
   // Extract title: first markdown heading, or first paragraph block, or filename

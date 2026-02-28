@@ -7,11 +7,21 @@ export interface SummaryResult {
   tags: string[];
 }
 
+const FORMAT_PROMPTS = {
+  video:
+    "Format this video transcript into clean, readable markdown. Add ## section headers where the topic shifts. Organize into paragraphs. Clean up filler words and false starts, but preserve all substantive content and meaning. Return ONLY the formatted markdown.",
+  pdf:
+    "Format this raw PDF text extraction into clean, readable markdown. Add ## section headers matching the document's structure. Fix broken line wraps, remove page artifacts (page numbers, headers/footers, column layout remnants like scattered single characters). Preserve all substantive content — tables, equations, references. Return ONLY the formatted markdown.",
+} as const;
+
 /**
- * Format a raw transcript into structured markdown with section headers and paragraphs.
- * Used for YouTube video transcripts that are otherwise walls of text.
+ * Format raw extracted text into structured markdown with section headers and paragraphs.
+ * Used for YouTube transcripts and PDF extractions that are otherwise walls of unformatted text.
  */
-export async function formatTranscript(rawText: string): Promise<string> {
+export async function formatContent(
+  rawText: string,
+  kind: keyof typeof FORMAT_PROMPTS
+): Promise<string> {
   const capped = rawText.slice(0, 30_000);
 
   const message = await client.messages.create({
@@ -20,7 +30,7 @@ export async function formatTranscript(rawText: string): Promise<string> {
     messages: [
       {
         role: "user",
-        content: `Format this video transcript into clean, readable markdown. Add ## section headers where the topic shifts. Organize into paragraphs. Clean up filler words and false starts, but preserve all substantive content and meaning. Return ONLY the formatted markdown.\n\n${capped}`,
+        content: `${FORMAT_PROMPTS[kind]}\n\n${capped}`,
       },
     ],
   });
