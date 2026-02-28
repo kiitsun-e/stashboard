@@ -28,35 +28,43 @@ function hostname(url: string): string {
 const ResultItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
   return (
-    <article class="result-item">
-      <h2 class="result-title">
-        <a href={item.url} target="_blank" rel="noopener">
-          {displayTitle}
-        </a>
-      </h2>
-      <div class="result-url">{hostname(item.url)}</div>
-      {item.userNote && <div class="result-note">"{item.userNote}"</div>}
-      {item.summary && <p class="result-summary">{item.summary}</p>}
-      <div class="result-meta">
-        {item.tags.length > 0 && (
-          <div class="result-tags">
+    <article class="card">
+      <div class="card-body">
+        <h2 class="card-title">
+          <a href={item.url} target="_blank" rel="noopener">
+            {displayTitle}
+          </a>
+        </h2>
+        <div class="card-origin">
+          <span class="card-host">{hostname(item.url)}</span>
+          <span class="card-sep">&middot;</span>
+          <span class="card-time">{timeAgo(item.savedAt)}</span>
+          {item.similarity !== undefined && (
+            <>
+              <span class="card-sep">&middot;</span>
+              <span class="card-similarity">
+                {(item.similarity * 100).toFixed(0)}%
+              </span>
+            </>
+          )}
+          {item.status !== "processed" && (
+            <span class="card-status" data-status={item.status}>
+              {item.status}
+            </span>
+          )}
+        </div>
+        {item.userNote && <div class="card-note">"{item.userNote}"</div>}
+        {item.summary && <p class="card-summary">{item.summary}</p>}
+      </div>
+      {item.tags.length > 0 && (
+        <div class="card-footer">
+          <div class="card-tags">
             {item.tags.map((tag) => (
               <span class="tag">{tag}</span>
             ))}
           </div>
-        )}
-        <span class="result-time">{timeAgo(item.savedAt)}</span>
-        {item.similarity !== undefined && (
-          <span class="result-similarity">
-            {(item.similarity * 100).toFixed(0)}% match
-          </span>
-        )}
-        {item.status !== "processed" && (
-          <span class="result-status" data-status={item.status}>
-            {item.status}
-          </span>
-        )}
-      </div>
+        </div>
+      )}
     </article>
   );
 };

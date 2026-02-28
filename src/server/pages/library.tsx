@@ -27,23 +27,37 @@ function hostname(url: string): string {
 
 const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
   const displayTitle = item.title || hostname(item.url);
+  const sourceType = item.status === "processed" ? (item as any).sourceType || "" : "";
   return (
-    <article class="result-item">
-      <div class="library-item-row">
-        <div class="library-item-main">
-          <h2 class="result-title">
-            <a href={item.url} target="_blank" rel="noopener">
-              {displayTitle}
-            </a>
-          </h2>
-          <div class="result-url">{hostname(item.url)}</div>
-          {item.userNote && <div class="result-note">"{item.userNote}"</div>}
-          {item.summary && <p class="result-summary">{item.summary}</p>}
+    <article class="card">
+      <div class="card-body">
+        <h2 class="card-title">
+          <a href={item.url} target="_blank" rel="noopener">
+            {displayTitle}
+          </a>
+        </h2>
+        <div class="card-origin">
+          <span class="card-host">{hostname(item.url)}</span>
+          <span class="card-sep">&middot;</span>
+          <span class="card-time">{timeAgo(item.savedAt)}</span>
+          {sourceType && (
+            <>
+              <span class="card-sep">&middot;</span>
+              <span class="card-type">{sourceType}</span>
+            </>
+          )}
+          {item.status !== "processed" && (
+            <span class="card-status" data-status={item.status}>
+              {item.status}
+            </span>
+          )}
         </div>
+        {item.userNote && <div class="card-note">"{item.userNote}"</div>}
+        {item.summary && <p class="card-summary">{item.summary}</p>}
       </div>
-      <div class="result-meta">
+      <div class="card-footer">
         {item.tags.length > 0 && (
-          <div class="result-tags">
+          <div class="card-tags">
             {item.tags.map((tag) => (
               <a class="tag" href={`/library?tag=${encodeURIComponent(tag)}`}>
                 {tag}
@@ -51,14 +65,7 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
             ))}
           </div>
         )}
-        <span class="result-time">{timeAgo(item.savedAt)}</span>
-        <span class="result-type">{item.status === "processed" ? (item as any).sourceType || "" : ""}</span>
-        {item.status !== "processed" && (
-          <span class="result-status" data-status={item.status}>
-            {item.status}
-          </span>
-        )}
-        <a class="item-detail-link" href={`/items/${item.id}`}>details</a>
+        <a class="card-detail-link" href={`/items/${item.id}`}>details &rarr;</a>
       </div>
     </article>
   );
