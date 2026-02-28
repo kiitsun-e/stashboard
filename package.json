@@ -24,6 +24,7 @@
     "fastembed": "^2.1.0",
     "hono": "^4.12.3",
     "linkedom": "^0.18.12",
+    "marked": "^17.0.3",
     "sanitize-html": "^2.17.1",
     "ulid": "^3.0.2"
   },

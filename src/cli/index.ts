@@ -1,5 +1,5 @@
 import { migrate } from "../db";
-import { saveUrl, processItem, processAll, reclassifyTweets } from "../pipeline/save";
+import { saveUrl, processItem, processAll, reclassifyTweets, rerenderTweetArticles } from "../pipeline/save";
 import { search, list } from "../pipeline/search";
 
 const HELP = `
@@ -210,6 +210,13 @@ async function main() {
       console.log("Reclassifying existing tweets...");
       const count = await reclassifyTweets();
       console.log(`Reclassified ${count} item${count !== 1 ? "s" : ""}.`);
+      break;
+    }
+
+    case "rerender-articles": {
+      console.log("Re-rendering tweet-article HTML from markdown...");
+      const count = await rerenderTweetArticles();
+      console.log(`Re-rendered ${count} item${count !== 1 ? "s" : ""}.`);
       break;
     }
 

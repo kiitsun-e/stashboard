@@ -1,8 +1,10 @@
 import { eq, sql } from "drizzle-orm";
 import { ulid } from "ulid";
+import { marked } from "marked";
+import sanitizeHtml from "sanitize-html";
 import { db } from "../db";
 import { items, tags, itemTags } from "../db/schema";
-import { extractContent } from "./extract";
+import { extractContent, SANITIZE_OPTIONS } from "./extract";
 import { summarize } from "./summarize";
 import { embed } from "./embed";
 
@@ -170,6 +172,35 @@ export async function reclassifyTweets(): Promise<number> {
     }
   }
   return reclassified;
+}
+
+/**
+ * Re-render content_html for tweet-article items by parsing their
+ * markdown content through marked instead of treating it as plain text.
+ */
+export async function rerenderTweetArticles(): Promise<number> {
+  const tweetArticles = await db
+    .select({ id: items.id, content: items.content })
+    .from(items)
+    .where(eq(items.sourceType, "tweet-article"));
+
+  let updated = 0;
+  for (const item of tweetArticles) {
+    if (!item.content) continue;
+    try {
+      const html = marked.parse(item.content, { async: false }) as string;
+      const contentHtml = sanitizeHtml(html, SANITIZE_OPTIONS);
+      await db
+        .update(items)
+        .set({ contentHtml })
+        .where(eq(items.id, item.id));
+      console.log(`  Re-rendered ${item.id}`);
+      updated++;
+    } catch (e: any) {
+      console.error(`  Failed to re-render ${item.id}: ${e.message}`);
+    }
+  }
+  return updated;
 }
 
 /**

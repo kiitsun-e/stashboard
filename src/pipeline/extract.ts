@@ -1,6 +1,7 @@
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import sanitizeHtml from "sanitize-html";
+import { marked } from "marked";
 import {
   TwitterClient,
   resolveCredentials,
@@ -24,7 +25,7 @@ export interface ExtractedContent {
   sourceType: SourceType;
 }
 
-const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+export const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
     // Text
     "p", "h1", "h2", "h3", "h4", "h5", "h6",
@@ -119,15 +120,20 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
       const tweet = await fetchTweet(url);
       if (tweet) {
         const content = formatTweetText(tweet);
-        const contentHtml = formatTweetHtml(tweet);
         const author = tweet.author?.username ?? "unknown";
         const name = tweet.author?.name ?? author;
 
         // Classify: article field present → tweet-article, otherwise → tweet
         const resolvedType: SourceType = tweet.article ? "tweet-article" : "tweet";
 
+        const contentHtml = resolvedType === "tweet-article"
+          ? formatTweetArticleHtml(tweet)
+          : formatTweetHtml(tweet);
+
         return {
-          title: `${name} (@${author}) on X`,
+          title: resolvedType === "tweet-article" && tweet.article?.title
+            ? tweet.article.title
+            : `${name} (@${author}) on X`,
           content,
           contentHtml,
           html: "",
@@ -305,6 +311,24 @@ function formatTweetHtml(tweet: TweetData): string {
   }
 
   return sanitizeHtml(html, SANITIZE_OPTIONS);
+}
+
+/**
+ * For tweet-articles: render the article body as markdown → HTML,
+ * with tweet author attribution as a header.
+ */
+function formatTweetArticleHtml(tweet: TweetData): string {
+  const author = tweet.author?.username ?? "unknown";
+  const name = tweet.author?.name ?? author;
+
+  // The article body is embedded in tweet.text by bird's extractTweetText.
+  // It contains markdown from Draft.js content_state rendering.
+  const articleMarkdown = tweet.text;
+  const articleHtml = marked.parse(articleMarkdown, { async: false }) as string;
+
+  const attribution = `<p class="text-secondary"><strong>${escapeHtml(name)}</strong> @${escapeHtml(author)} on X</p><hr>`;
+
+  return sanitizeHtml(attribution + articleHtml, SANITIZE_OPTIONS);
 }
 
 function escapeHtml(s: string): string {
