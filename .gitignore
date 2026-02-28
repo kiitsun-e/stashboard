@@ -1,3 +1,7 @@
+# For local only
+data
+.cursor/
+
 # dependencies (bun install)
 node_modules
 

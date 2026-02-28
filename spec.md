@@ -311,11 +311,15 @@ Completed. Hono API wrapping all core pipeline functions:
 - `bun run dev` (watch mode) / `bun run start` for local server on port 3000
 - Deploy to Railway (pending)
 
-### Phase 3: Web Frontend + Mobile
+### Phase 3: Web Frontend + Mobile ✓
 
-- Server-rendered HTML pages from Hono (search, library, item detail)
-- Paste-a-URL save form for desktop
-- Configure HTTP Shortcuts on Android for mobile share sheet
+Completed. Server-rendered Hono JSX frontend with full design system:
+- Search page (home) with semantic search, results display, inline save form for desktop
+- Library page with tag/status/source_type filters, ULID cursor pagination
+- Item detail page with "Open Original" primary action, user note, summary, tags, metadata grid, archived content display
+- Design system: Instrument Serif + Geist Sans/Mono, dark/light theme toggle, warm gold accents, dense information-forward layout
+- One CSS file with all design tokens, no build step, no frontend framework
+- Mobile: HTTP Shortcuts app config for Android share sheet (API-ready, device config only)
 
 ## Open Questions
 
