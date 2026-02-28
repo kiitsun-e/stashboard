@@ -171,6 +171,16 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
   const article = reader.parse();
 
   let content = article?.textContent?.trim() ?? "";
+  let title = article?.title ?? "";
+
+  // Fallback for JS-rendered SPAs: extract from meta tags and JSON-LD
+  if (!content) {
+    const meta = extractMeta(document as any);
+    if (!title) title = meta.title;
+    content = meta.description;
+  }
+
+  if (!title) title = new URL(url).hostname;
 
   // Cap content size
   if (content.length > MAX_CONTENT_SIZE) {
@@ -185,12 +195,55 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
     : "";
 
   return {
-    title: article?.title ?? new URL(url).hostname,
+    title,
     content,
     contentHtml,
     html: html.length <= 2 * 1024 * 1024 ? html : "", // skip archive if >2MB
     sourceType,
   };
+}
+
+// --- Meta tag / JSON-LD fallback for JS-rendered pages ---
+
+function extractMeta(document: any): { title: string; description: string } {
+  const get = (selector: string, attr = "content"): string =>
+    document.querySelector(selector)?.getAttribute(attr)?.trim() ?? "";
+
+  const title =
+    get('meta[property="og:title"]') ||
+    get('meta[name="twitter:title"]') ||
+    document.querySelector("title")?.textContent?.trim() ||
+    "";
+
+  // Collect descriptions from meta tags
+  const descriptions = [
+    get('meta[property="og:description"]'),
+    get('meta[name="description"]'),
+    get('meta[name="twitter:description"]'),
+  ].filter(Boolean);
+
+  // Also pull FAQ/article content from JSON-LD structured data
+  const jsonLdParts: string[] = [];
+  for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+    try {
+      const data = JSON.parse(script.textContent ?? "");
+      if (data.description) jsonLdParts.push(data.description);
+      if (data.headline) jsonLdParts.push(data.headline);
+      // FAQ pages often have rich Q&A content
+      if (data.mainEntity && Array.isArray(data.mainEntity)) {
+        for (const entity of data.mainEntity) {
+          if (entity.name && entity.acceptedAnswer?.text) {
+            jsonLdParts.push(`Q: ${entity.name}\nA: ${entity.acceptedAnswer.text}`);
+          }
+        }
+      }
+    } catch {
+      // malformed JSON-LD, skip
+    }
+  }
+
+  const description = [...descriptions, ...jsonLdParts].join("\n\n");
+  return { title, description };
 }
 
 // --- Bird (X/Twitter) helpers ---

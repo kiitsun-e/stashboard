@@ -38,6 +38,8 @@ export async function summarize(
 - "summary": a 2-3 sentence summary of what this is about and why it's interesting
 - "tags": an array of 3-5 lowercase kebab-case topic tags
 
+Summarize based on whatever information is available — title, metadata, user notes, or content. Never say you lack information; always produce a useful summary from what's provided.
+
 Respond ONLY with valid JSON, no markdown fences.
 
 ${input}`,
