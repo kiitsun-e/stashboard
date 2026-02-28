@@ -6,7 +6,7 @@ import { items, tags, itemTags } from "../db/schema";
 import { saveUrl, processItem, processAll, reclassifyTweets } from "../pipeline/save";
 import { search, list } from "../pipeline/search";
 
-const ARCHIVE_DIR = "data/archive";
+const ARCHIVE_DIR = process.env.STASHBOARD_ARCHIVE_DIR ?? "data/archive";
 
 export const routes = new Hono();
 

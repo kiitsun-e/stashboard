@@ -6,6 +6,7 @@ async function getModel(): Promise<FlagEmbedding> {
   if (!model) {
     model = await FlagEmbedding.init({
       model: EmbeddingModel.AllMiniLML6V2,
+      cacheDir: process.env.FASTEMBED_CACHE_DIR ?? "local_cache",
     });
   }
   return model;

@@ -8,7 +8,7 @@ import { extractContent, SANITIZE_OPTIONS } from "./extract";
 import { summarize } from "./summarize";
 import { embed } from "./embed";
 
-const ARCHIVE_DIR = "data/archive";
+const ARCHIVE_DIR = process.env.STASHBOARD_ARCHIVE_DIR ?? "data/archive";
 
 interface SaveResult {
   id: string;
