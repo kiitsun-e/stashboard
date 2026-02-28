@@ -141,24 +141,26 @@ export const LibraryPage: FC<{
     <Layout title="Library" activePage="library">
       {/* Filters */}
       <section class="library-filters">
-        <div class="filter-row">
-          <div class="filter-group">
+        <div class="filter-row filter-row--tags">
+          <div class="filter-group filter-group--tags">
             <span class="filter-label">Tags</span>
-            <div class="filter-options">
-              <a
-                class={`filter-option ${!activeTag ? "active" : ""}`}
-                href={filterUrl({ tag: undefined })}
-              >
-                All
-              </a>
-              {allTags.map((tag) => (
+            <div class="filter-options-scroll">
+              <div class="filter-options filter-options--tags">
                 <a
-                  class={`filter-option ${activeTag === tag ? "active" : ""}`}
-                  href={filterUrl({ tag })}
+                  class={`filter-option ${!activeTag ? "active" : ""}`}
+                  href={filterUrl({ tag: undefined })}
                 >
-                  {tag}
+                  All
                 </a>
-              ))}
+                {allTags.map((tag) => (
+                  <a
+                    class={`filter-option ${activeTag === tag ? "active" : ""}`}
+                    href={filterUrl({ tag })}
+                  >
+                    {tag}
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </div>

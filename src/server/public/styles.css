@@ -610,11 +610,63 @@ a:hover {
   gap: var(--space-3);
 }
 
+.filter-row--tags {
+  align-items: flex-start;
+}
+
 .filter-group {
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.filter-group--tags {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Scrollable tags container with edge fades */
+.filter-options-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, black calc(100% - 48px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 48px), transparent 100%);
+}
+.filter-options-scroll::-webkit-scrollbar {
+  display: none;
+}
+/* No overflow — no fade */
+.filter-options-scroll.no-overflow {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+/* Scrolled partway — fade both edges */
+.filter-options-scroll.scrolled-mid {
+  mask-image: linear-gradient(to right, transparent 0%, black 48px, black calc(100% - 48px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 48px, black calc(100% - 48px), transparent 100%);
+}
+/* Scrolled to end — fade left only */
+.filter-options-scroll.scrolled-end {
+  mask-image: linear-gradient(to right, transparent 0%, black 48px);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 48px);
+}
+
+/* Tags grid: fill 5 rows top-to-bottom, then spill into columns.
+   Each row: 0.75rem font × ~1.4 line-height + 4px padding = ~21px.
+   5 rows + 4 gaps (4px each) = 121px. */
+.filter-options--tags {
+  display: grid;
+  grid-template-rows: repeat(5, min-content);
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: var(--space-1);
+  max-height: calc(5 * 21px + 4 * var(--space-1));
+  padding-right: var(--space-6);
 }
 
 .filter-label {
@@ -631,6 +683,11 @@ a:hover {
   display: flex;
   gap: var(--space-1);
   flex-wrap: wrap;
+}
+
+/* Override: tags use grid layout, not flex */
+.filter-options.filter-options--tags {
+  display: grid;
 }
 
 .filter-option {

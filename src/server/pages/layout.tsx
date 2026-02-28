@@ -184,6 +184,22 @@ export const Layout: FC<
                 setTimeout(function() { btn.textContent = 'delete'; }, 2000);
               });
           }
+
+          (function() {
+            var el = document.querySelector('.filter-options-scroll');
+            if (!el) return;
+            function checkFade() {
+              var hasOverflow = el.scrollWidth > el.clientWidth + 2;
+              var atStart = el.scrollLeft < 2;
+              var atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+              el.classList.toggle('no-overflow', !hasOverflow);
+              el.classList.toggle('scrolled-mid', hasOverflow && !atStart && !atEnd);
+              el.classList.toggle('scrolled-end', hasOverflow && atEnd && !atStart);
+            }
+            el.addEventListener('scroll', checkFade, { passive: true });
+            checkFade();
+            setTimeout(checkFade, 100);
+          })();
         `,
           }}
         />
