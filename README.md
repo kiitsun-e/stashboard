@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/server/public/readme-banner.png" alt="Stashboard — Semantic Read-Later Tool & Search" width="700" />
+</p>
+
 # Stashboard
 
 Personal read-later tool with semantic search. Save URLs from your phone's share sheet or the CLI, and Stashboard extracts the content, summarizes it with Claude, generates embeddings, and makes everything searchable through a fast web UI.
