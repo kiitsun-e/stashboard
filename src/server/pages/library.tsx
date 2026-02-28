@@ -40,6 +40,31 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
   const typeLabel = SOURCE_TYPE_LABELS[item.sourceType] || item.sourceType;
   return (
     <article class={`card${item.read ? " is-read" : ""}${item.pinned ? " is-pinned" : ""}`} data-item-id={item.id}>
+      <div class="card-controls">
+        <button
+          class={`card-pin-btn${item.pinned ? " is-active" : ""}`}
+          type="button"
+          data-item-id={item.id}
+          data-pinned={item.pinned ? "true" : "false"}
+          onclick="toggleCardPin(this)"
+          title={item.pinned ? "Unpin" : "Pin to top"}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 2.5L13.5 6.5L10 8.5L9.5 12.5L3.5 6.5L7.5 6L9.5 2.5Z" />
+            <path d="M3.5 12.5L6.5 9.5" />
+          </svg>
+        </button>
+        <button
+          class={`card-fav-btn${item.favorited ? " is-active" : ""}`}
+          type="button"
+          data-item-id={item.id}
+          data-favorited={item.favorited ? "true" : "false"}
+          onclick="toggleCardFav(this)"
+          title={item.favorited ? "Remove from favorites" : "Add to favorites"}
+        >
+          {item.favorited ? "\u2605" : "\u2606"}
+        </button>
+      </div>
       <div class="card-body">
         <h2 class="card-title">
           {!item.read && <span class="unread-dot" />}
@@ -90,26 +115,6 @@ const LibraryItem: FC<{ item: SearchResult }> = ({ item }) => {
           );
         })()}
         <div class="card-actions">
-          <button
-            class={`card-pin-btn${item.pinned ? " is-active" : ""}`}
-            type="button"
-            data-item-id={item.id}
-            data-pinned={item.pinned ? "true" : "false"}
-            onclick="toggleCardPin(this)"
-            title={item.pinned ? "Unpin" : "Pin to top"}
-          >
-            {item.pinned ? "pinned" : "pin"}
-          </button>
-          <button
-            class={`card-fav-btn${item.favorited ? " is-active" : ""}`}
-            type="button"
-            data-item-id={item.id}
-            data-favorited={item.favorited ? "true" : "false"}
-            onclick="toggleCardFav(this)"
-            title={item.favorited ? "Remove from favorites" : "Add to favorites"}
-          >
-            {item.favorited ? "\u2605" : "\u2606"}
-          </button>
           <button
             class="card-read-btn"
             type="button"

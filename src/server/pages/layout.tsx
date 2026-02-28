@@ -174,8 +174,12 @@ export const Layout: FC<
             var isPinned = btn.getAttribute('data-pinned') === 'true';
             var newPinned = !isPinned;
             btn.setAttribute('data-pinned', String(newPinned));
-            btn.textContent = newPinned ? 'pinned' : 'pin';
             btn.classList.toggle('is-active', newPinned);
+            btn.classList.remove('just-pinned');
+            if (newPinned) {
+              void btn.offsetWidth;
+              btn.classList.add('just-pinned');
+            }
             var card = btn.closest('.card');
             if (card) card.classList.toggle('is-pinned', newPinned);
             fetch('/items/' + id, {
