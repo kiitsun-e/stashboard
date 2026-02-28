@@ -77,6 +77,7 @@ web.get("/items/:id", async (c) => {
           url: "",
           title: "Not Found",
           content: null,
+          contentHtml: null,
           userNote: null,
           summary: null,
           sourceType: "other",

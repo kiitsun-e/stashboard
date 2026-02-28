@@ -1,5 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+import sanitizeHtml from "sanitize-html";
 import { validateUrl } from "./ssrf";
 
 const FETCH_TIMEOUT = 15_000;
@@ -9,10 +10,52 @@ const MAX_REDIRECTS = 3;
 
 export interface ExtractedContent {
   title: string;
-  content: string; // markdown-ish text
+  content: string; // plain text for search/embedding
+  contentHtml: string; // sanitized HTML for display
   html: string; // raw HTML for archiving
   sourceType: "article" | "tweet" | "video" | "pdf" | "other";
 }
+
+const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    // Text
+    "p", "h1", "h2", "h3", "h4", "h5", "h6",
+    "blockquote", "pre", "code", "em", "strong", "b", "i", "u",
+    "s", "del", "ins", "mark", "small", "sub", "sup", "br", "hr",
+    // Lists
+    "ul", "ol", "li", "dl", "dt", "dd",
+    // Images
+    "img",
+    // Tables
+    "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption",
+    // Links
+    "a",
+    // Semantic
+    "figure", "figcaption", "aside", "section", "details", "summary",
+    // Code
+    "span",
+  ],
+  allowedAttributes: {
+    a: ["href", "title"],
+    img: ["src", "alt", "width", "height", "loading"],
+    code: ["class"],
+    span: ["class"],
+    pre: ["class"],
+    td: ["colspan", "rowspan"],
+    th: ["colspan", "rowspan", "scope"],
+  },
+  allowedSchemes: ["http", "https"],
+  // Open links in new tabs (added via transformTags)
+  transformTags: {
+    a: sanitizeHtml.simpleTransform("a", {
+      target: "_blank",
+      rel: "noopener noreferrer",
+    }),
+    img: sanitizeHtml.simpleTransform("img", {
+      loading: "lazy",
+    }),
+  },
+};
 
 function detectSourceType(
   url: string
@@ -67,6 +110,7 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
     return {
       title: `Tweet: ${url}`,
       content: "",
+      contentHtml: "",
       html: "",
       sourceType: "tweet",
     };
@@ -104,9 +148,15 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
       "\n\n[Content truncated — original exceeds 500KB]";
   }
 
+  // Sanitize the rich HTML from Readability for safe display
+  const contentHtml = article?.content
+    ? sanitizeHtml(article.content, SANITIZE_OPTIONS)
+    : "";
+
   return {
     title: article?.title ?? new URL(url).hostname,
     content,
+    contentHtml,
     html: html.length <= 2 * 1024 * 1024 ? html : "", // skip archive if >2MB
     sourceType,
   };

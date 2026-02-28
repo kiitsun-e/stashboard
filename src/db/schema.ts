@@ -5,6 +5,7 @@ export const items = sqliteTable("items", {
   url: text("url").notNull().unique(),
   title: text("title"),
   content: text("content"),
+  contentHtml: text("content_html"),
   userNote: text("user_note"),
   summary: text("summary"),
   sourceType: text("source_type", {

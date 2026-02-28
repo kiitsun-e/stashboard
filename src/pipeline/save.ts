@@ -94,6 +94,7 @@ export async function processItem(id: string): Promise<void> {
       .set({
         title: extracted.title,
         content: extracted.content,
+        contentHtml: extracted.contentHtml,
         summary,
         sourceType: extracted.sourceType,
         processedAt: now,

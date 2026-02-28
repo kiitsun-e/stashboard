@@ -23,6 +23,7 @@ export function migrate() {
       url TEXT NOT NULL UNIQUE,
       title TEXT,
       content TEXT,
+      content_html TEXT,
       user_note TEXT,
       summary TEXT,
       source_type TEXT NOT NULL DEFAULT 'other',
@@ -44,4 +45,11 @@ export function migrate() {
       PRIMARY KEY (item_id, tag_id)
     );
   `);
+
+  // Add content_html column for existing databases
+  try {
+    sqlite.exec("ALTER TABLE items ADD COLUMN content_html TEXT");
+  } catch {
+    // Column already exists
+  }
 }

@@ -6,6 +6,7 @@ interface ItemDetail {
   url: string;
   title: string | null;
   content: string | null;
+  contentHtml: string | null;
   userNote: string | null;
   summary: string | null;
   sourceType: string;
@@ -115,13 +116,17 @@ export const ItemPage: FC<{ item: ItemDetail }> = ({ item }) => {
         </dl>
 
         {/* Archived content */}
-        {item.content && (
+        {(item.contentHtml || item.content) && (
           <section class="item-content">
             <div class="item-content-header">
               <h2>Archived Content</h2>
               <span class="item-content-hint">Extracted from the original page</span>
             </div>
-            <div class="item-content-body" dangerouslySetInnerHTML={{ __html: escapeForDisplay(item.content) }} />
+            {item.contentHtml ? (
+              <div class="item-content-body article-body" dangerouslySetInnerHTML={{ __html: item.contentHtml }} />
+            ) : (
+              <div class="item-content-body" dangerouslySetInnerHTML={{ __html: escapeForDisplay(item.content!) }} />
+            )}
           </section>
         )}
       </div>
