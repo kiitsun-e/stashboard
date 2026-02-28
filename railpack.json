@@ -1,17 +1,6 @@
 {
   "$schema": "https://schema.railpack.com",
-  "steps": {
-    "install-uv": {
-      "commands": [
-        { "cmd": "sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'", "customName": "Install uv package manager" }
-      ]
-    }
-  },
   "deploy": {
-    "aptPackages": ["python3", "poppler-utils", "ca-certificates", "curl"],
-    "inputs": [
-      { "step": "install-uv", "include": ["/root/.local/bin"] }
-    ],
-    "paths": ["/root/.local/bin"]
+    "aptPackages": ["python3", "python3-pip", "poppler-utils", "ca-certificates", "curl"]
   }
 }

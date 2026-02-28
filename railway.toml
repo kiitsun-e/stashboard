@@ -5,3 +5,4 @@ builder = "RAILPACK"
 startCommand = "bun run start"
 healthcheckPath = "/"
 healthcheckTimeout = 300
+preDeployCommand = "pip3 install uv --break-system-packages"
